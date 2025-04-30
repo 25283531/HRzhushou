@@ -201,9 +201,13 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ref, reactive, onMounted, onUnmounted } from 'vue'
+import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { Upload, UploadFilled } from '@element-plus/icons-vue'
+import { parseDate, formatDate } from '../../utils/dateParser'
+import { validateAttendanceRecords, validateExcelFile } from '../../utils/dataValidator'
+import { processAttendanceData } from '../../utils/workerService'
+import backupService from '../../utils/backupService'
 
 // 数据加载状态
 const loading = ref(false)
@@ -251,23 +255,47 @@ const attendanceRules = reactive({
 // 生命周期钩子
 onMounted(() => {
   fetchAttendanceData()
+  
+  // 初始化备份服务
+  backupService.updateSettings({
+    autoBackup: true,
+    backupInterval: 12 * 60 * 60 * 1000, // 12小时
+    includeAttendance: true
+  });
+})
+
+// 组件卸载时清理资源
+onUnmounted(() => {
+  // 停止自动备份
+  backupService.stopAutoBackup();
 })
 
 // 获取考勤数据
 const fetchAttendanceData = () => {
   loading.value = true
-  // 模拟API调用
+  
+  // 显示加载指示器（仅当数据量大时）
+  let loadingInstance = null;
+  const loadingTimer = setTimeout(() => {
+    loadingInstance = ElLoading.service({
+      target: '.attendance-container',
+      text: '正在加载数据...',
+      background: 'rgba(255, 255, 255, 0.7)'
+    });
+  }, 300); // 如果300ms内加载完成，则不显示加载指示器
+  
+  // 这里应该是实际的API调用
+  // 使用Web Worker处理大量数据，避免UI卡顿
   setTimeout(() => {
-    // 这里应该是实际的API调用
-    attendanceData.value = [
+    // 模拟从API获取的原始数据
+    const rawData = [
       {
         id: 1,
         employee_name: '张三',
         employee_number: '001',
         date: '2023-11-01',
         check_in: '09:00:00',
-        check_out: '18:00:00',
-        status: '正常'
+        check_out: '18:00:00'
       },
       {
         id: 2,
@@ -275,13 +303,43 @@ const fetchAttendanceData = () => {
         employee_number: '002',
         date: '2023-11-01',
         check_in: '09:15:00',
-        check_out: '18:00:00',
-        status: '迟到'
+        check_out: '18:00:00'
       }
-    ]
-    total.value = 2
-    loading.value = false
-  }, 500)
+    ];
+    
+    // 使用Web Worker处理考勤数据
+    processAttendanceData({
+      attendanceRecords: rawData,
+      rules: attendanceRules
+    }).then(result => {
+      // 更新考勤数据
+      attendanceData.value = result.processedRecords;
+      total.value = result.processedRecords.length;
+      
+      // 清除加载定时器
+      clearTimeout(loadingTimer);
+      
+      // 关闭加载指示器
+      if (loadingInstance) {
+        loadingInstance.close();
+      }
+      
+      loading.value = false;
+    }).catch(error => {
+      console.error('处理考勤数据失败:', error);
+      ElMessage.error(`处理考勤数据失败: ${error.message}`);
+      
+      // 清除加载定时器
+      clearTimeout(loadingTimer);
+      
+      // 关闭加载指示器
+      if (loadingInstance) {
+        loadingInstance.close();
+      }
+      
+      loading.value = false;
+    });
+  }, 500);
 }
 
 // 显示导入对话框
@@ -292,9 +350,49 @@ const showImportDialog = () => {
 // 处理文件变更
 const handleFileChange = (file) => {
   importForm.file = file.raw
-  // 这里可以解析Excel文件头，获取实际的列名
-  // 示例代码，实际应该读取文件内容
-  excelColumns.value = ['员工姓名', '工号', '日期', '上班打卡', '下班打卡', '状态', '备注']
+  
+  // 验证文件格式
+  const validationResult = validateExcelFile(file.raw);
+  if (!validationResult.valid) {
+    ElMessage.error(validationResult.errors.join('\n'));
+    return;
+  }
+  
+  // 显示加载指示器
+  const loadingInstance = ElLoading.service({
+    lock: true,
+    text: '正在解析文件...',
+    background: 'rgba(0, 0, 0, 0.7)'
+  });
+  
+  // 使用FileReader读取文件内容
+  const reader = new FileReader();
+  
+  reader.onload = (e) => {
+    try {
+      // 这里应该使用适当的库解析Excel文件
+      // 示例代码，实际应该使用xlsx或其他库解析文件内容
+      // 解析文件头，获取实际的列名
+      excelColumns.value = ['员工姓名', '工号', '日期', '上班打卡', '下班打卡', '状态', '备注'];
+      
+      // 关闭加载指示器
+      loadingInstance.close();
+      
+      ElMessage.success('文件解析成功');
+    } catch (error) {
+      console.error('解析文件失败:', error);
+      ElMessage.error(`解析文件失败: ${error.message}`);
+      loadingInstance.close();
+    }
+  };
+  
+  reader.onerror = () => {
+    ElMessage.error('读取文件失败');
+    loadingInstance.close();
+  };
+  
+  // 读取文件
+  reader.readAsArrayBuffer(file.raw);
 }
 
 // 显示字段映射对话框
@@ -343,10 +441,85 @@ const submitImport = () => {
     return
   }
   
-  // 这里应该是实际的文件上传和导入逻辑
-  ElMessage.success('考勤数据导入成功')
-  importDialogVisible.value = false
-  fetchAttendanceData() // 刷新数据
+  // 显示加载指示器
+  const loadingInstance = ElLoading.service({
+    lock: true,
+    text: '正在导入数据...',
+    background: 'rgba(0, 0, 0, 0.7)'
+  });
+  
+  // 创建FormData对象
+  const formData = new FormData();
+  formData.append('file', importForm.file);
+  
+  // 添加字段映射信息
+  formData.append('fieldMapping', JSON.stringify(fieldMapping));
+  
+  // 添加自定义字段
+  formData.append('customFields', JSON.stringify(customFields.value));
+  
+  // 这里应该调用API上传文件
+  // 示例代码，实际应该使用axios或fetch调用API
+  setTimeout(() => {
+    // 模拟导入的数据
+    const importedData = [
+      {
+        employee_name: '张三',
+        employee_number: '001',
+        date: '2023-11-01',
+        check_in: '09:00:00',
+        check_out: '18:00:00'
+      },
+      {
+        employee_name: '李四',
+        employee_number: '002',
+        date: '2023-11-01',
+        check_in: '09:15:00',
+        check_out: '18:00:00'
+      }
+    ];
+    
+    // 使用Web Worker处理考勤数据
+    processAttendanceData({
+      attendanceRecords: importedData,
+      rules: attendanceRules
+    }).then(result => {
+      // 验证处理后的数据
+      const validationResult = validateAttendanceRecords(result.processedRecords);
+      
+      if (!validationResult.valid) {
+        // 显示验证错误
+        ElMessageBox.alert(
+          `导入数据验证失败，请检查数据格式：\n${validationResult.errors.join('\n')}`,
+          '数据验证错误',
+          { confirmButtonText: '确定', type: 'error' }
+        );
+        loadingInstance.close();
+        return;
+      }
+      
+      // 更新考勤数据
+      attendanceData.value = result.processedRecords;
+      total.value = result.processedRecords.length;
+      
+      // 创建数据备份
+      backupService.createBackup().then(backupResult => {
+        if (backupResult.success) {
+          console.log('数据备份成功:', backupResult.fileName);
+        } else {
+          console.error('数据备份失败:', backupResult.message);
+        }
+      });
+      
+      loadingInstance.close();
+      ElMessage.success(`成功导入 ${result.processedRecords.length} 条考勤记录`);
+      importDialogVisible.value = false;
+    }).catch(error => {
+      console.error('处理考勤数据失败:', error);
+      ElMessage.error(`处理考勤数据失败: ${error.message}`);
+      loadingInstance.close();
+    });
+  }, 1000);
 }
 
 // 保存考勤规则
