@@ -1,0 +1,41 @@
+{
+  "name": "hrzhushou",
+  "version": "0.1.0",
+  "description": "薪酬管理软件 - 单机部署的HR助手",
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "electron:dev": "electron .",
+    "electron:build": "vite build && electron-builder"
+  },
+  "dependencies": {
+    "axios": "^1.6.2",
+    "element-plus": "^2.4.2",
+    "vue": "^3.3.8",
+    "vue-router": "^4.2.5",
+    "pinia": "^2.1.7",
+    "sqlite3": "^5.1.6"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^4.5.0",
+    "electron": "^27.1.0",
+    "electron-builder": "^24.6.4",
+    "vite": "^5.0.0"
+  },
+  "build": {
+    "appId": "com.hrzhushou.app",
+    "productName": "HR助手",
+    "directories": {
+      "output": "dist_electron"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*"
+    ],
+    "win": {
+      "target": ["nsis"]
+    }
+  }
+}
