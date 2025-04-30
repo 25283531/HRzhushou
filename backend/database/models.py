@@ -1,0 +1,436 @@
+from datetime import datetime
+import json
+from .db import execute_query, get_current_time
+
+class BaseModel:
+    """基础模型类，提供通用的CRUD操作"""
+    
+    @classmethod
+    def create(cls, data):
+        """创建记录"""
+        raise NotImplementedError("子类必须实现create方法")
+    
+    @classmethod
+    def get_by_id(cls, id):
+        """根据ID获取记录"""
+        raise NotImplementedError("子类必须实现get_by_id方法")
+    
+    @classmethod
+    def update(cls, id, data):
+        """更新记录"""
+        raise NotImplementedError("子类必须实现update方法")
+    
+    @classmethod
+    def delete(cls, id):
+        """删除记录"""
+        raise NotImplementedError("子类必须实现delete方法")
+
+class Employee(BaseModel):
+    """员工模型"""
+    
+    @classmethod
+    def create(cls, data):
+        query = '''
+        INSERT INTO employees (name, employee_id, id_card, department, position, 
+                              entry_date, leave_date, custom_fields, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        '''
+        
+        custom_fields = json.dumps(data.get('custom_fields', {}))
+        current_time = get_current_time()
+        
+        params = (
+            data.get('name'),
+            data.get('employee_id'),
+            data.get('id_card'),
+            data.get('department'),
+            data.get('position'),
+            data.get('entry_date'),
+            data.get('leave_date'),
+            custom_fields,
+            current_time,
+            current_time
+        )
+        
+        return execute_query(query, params)
+    
+    @classmethod
+    def get_by_id(cls, id):
+        query = 'SELECT * FROM employees WHERE id = ?'
+        return execute_query(query, (id,), one=True)
+    
+    @classmethod
+    def get_all(cls):
+        query = 'SELECT * FROM employees ORDER BY name'
+        return execute_query(query)
+    
+    @classmethod
+    def update(cls, id, data):
+        query = '''
+        UPDATE employees SET 
+            name = ?,
+            employee_id = ?,
+            id_card = ?,
+            department = ?,
+            position = ?,
+            entry_date = ?,
+            leave_date = ?,
+            custom_fields = ?,
+            updated_at = ?
+        WHERE id = ?
+        '''
+        
+        current_employee = cls.get_by_id(id)
+        if not current_employee:
+            return None
+        
+        custom_fields = json.dumps(data.get('custom_fields', {}))
+        current_time = get_current_time()
+        
+        params = (
+            data.get('name', current_employee['name']),
+            data.get('employee_id', current_employee['employee_id']),
+            data.get('id_card', current_employee['id_card']),
+            data.get('department', current_employee['department']),
+            data.get('position', current_employee['position']),
+            data.get('entry_date', current_employee['entry_date']),
+            data.get('leave_date', current_employee['leave_date']),
+            custom_fields,
+            current_time,
+            id
+        )
+        
+        execute_query(query, params)
+        return cls.get_by_id(id)
+    
+    @classmethod
+    def delete(cls, id):
+        query = 'DELETE FROM employees WHERE id = ?'
+        return execute_query(query, (id,))
+
+class PositionChange(BaseModel):
+    """职位变动记录模型"""
+    
+    @classmethod
+    def create(cls, data):
+        query = '''
+        INSERT INTO position_changes 
+            (employee_id, old_position, new_position, old_salary, new_salary, effective_date, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        '''
+        
+        current_time = get_current_time()
+        
+        params = (
+            data.get('employee_id'),
+            data.get('old_position'),
+            data.get('new_position'),
+            data.get('old_salary'),
+            data.get('new_salary'),
+            data.get('effective_date'),
+            current_time
+        )
+        
+        return execute_query(query, params)
+    
+    @classmethod
+    def get_by_id(cls, id):
+        query = 'SELECT * FROM position_changes WHERE id = ?'
+        return execute_query(query, (id,), one=True)
+    
+    @classmethod
+    def get_by_employee(cls, employee_id):
+        query = 'SELECT * FROM position_changes WHERE employee_id = ? ORDER BY effective_date DESC'
+        return execute_query(query, (employee_id,))
+    
+    @classmethod
+    def get_by_month(cls, month):
+        # 获取指定月份内的职位变动记录
+        start_date = f"{month}-01"
+        if month.endswith('12'):
+            end_date = f"{int(month.split('-')[0])+1}-01-01"
+        else:
+            end_date = f"{month.split('-')[0]}-{int(month.split('-')[1])+1:02d}-01"
+        
+        query = '''
+        SELECT * FROM position_changes 
+        WHERE effective_date >= ? AND effective_date < ? 
+        ORDER BY employee_id, effective_date
+        '''
+        
+        return execute_query(query, (start_date, end_date))
+    
+    @classmethod
+    def update(cls, id, data):
+        query = '''
+        UPDATE position_changes SET 
+            employee_id = ?,
+            old_position = ?,
+            new_position = ?,
+            old_salary = ?,
+            new_salary = ?,
+            effective_date = ?
+        WHERE id = ?
+        '''
+        
+        current_record = cls.get_by_id(id)
+        if not current_record:
+            return None
+        
+        params = (
+            data.get('employee_id', current_record['employee_id']),
+            data.get('old_position', current_record['old_position']),
+            data.get('new_position', current_record['new_position']),
+            data.get('old_salary', current_record['old_salary']),
+            data.get('new_salary', current_record['new_salary']),
+            data.get('effective_date', current_record['effective_date']),
+            id
+        )
+        
+        execute_query(query, params)
+        return cls.get_by_id(id)
+    
+    @classmethod
+    def delete(cls, id):
+        query = 'DELETE FROM position_changes WHERE id = ?'
+        return execute_query(query, (id,))
+
+class Attendance(BaseModel):
+    """考勤数据模型"""
+    
+    @classmethod
+    def create(cls, data):
+        query = '''
+        INSERT INTO attendance 
+            (employee_id, date, status, work_hours, late_minutes, 
+             early_leave_minutes, overtime_hours, absence_days, custom_data, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        '''
+        
+        custom_data = json.dumps(data.get('custom_data', {}))
+        current_time = get_current_time()
+        
+        params = (
+            data.get('employee_id'),
+            data.get('date'),
+            data.get('status'),
+            data.get('work_hours', 0),
+            data.get('late_minutes', 0),
+            data.get('early_leave_minutes', 0),
+            data.get('overtime_hours', 0),
+            data.get('absence_days', 0),
+            custom_data,
+            current_time
+        )
+        
+        return execute_query(query, params)
+    
+    @classmethod
+    def get_by_id(cls, id):
+        query = 'SELECT * FROM attendance WHERE id = ?'
+        return execute_query(query, (id,), one=True)
+    
+    @classmethod
+    def get_by_employee_and_month(cls, employee_id, month):
+        # 获取指定员工在指定月份的考勤记录
+        query = 'SELECT * FROM attendance WHERE employee_id = ? AND date LIKE ? ORDER BY date'
+        return execute_query(query, (employee_id, f"{month}%"))
+    
+    @classmethod
+    def get_by_month(cls, month):
+        # 获取指定月份的所有考勤记录
+        query = 'SELECT * FROM attendance WHERE date LIKE ? ORDER BY employee_id, date'
+        return execute_query(query, (f"{month}%",))
+    
+    @classmethod
+    def update(cls, id, data):
+        query = '''
+        UPDATE attendance SET 
+            employee_id = ?,
+            date = ?,
+            status = ?,
+            work_hours = ?,
+            late_minutes = ?,
+            early_leave_minutes = ?,
+            overtime_hours = ?,
+            absence_days = ?,
+            custom_data = ?
+        WHERE id = ?
+        '''
+        
+        current_record = cls.get_by_id(id)
+        if not current_record:
+            return None
+        
+        custom_data = json.dumps(data.get('custom_data', {}))
+        
+        params = (
+            data.get('employee_id', current_record['employee_id']),
+            data.get('date', current_record['date']),
+            data.get('status', current_record['status']),
+            data.get('work_hours', current_record['work_hours']),
+            data.get('late_minutes', current_record['late_minutes']),
+            data.get('early_leave_minutes', current_record['early_leave_minutes']),
+            data.get('overtime_hours', current_record['overtime_hours']),
+            data.get('absence_days', current_record['absence_days']),
+            custom_data,
+            id
+        )
+        
+        execute_query(query, params)
+        return cls.get_by_id(id)
+    
+    @classmethod
+    def delete(cls, id):
+        query = 'DELETE FROM attendance WHERE id = ?'
+        return execute_query(query, (id,))
+
+class SalaryGroup(BaseModel):
+    """薪资组模型"""
+    
+    @classmethod
+    def create(cls, data):
+        query = '''
+        INSERT INTO salary_groups (name, description, formula, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?)
+        '''
+        
+        current_time = get_current_time()
+        
+        params = (
+            data.get('name'),
+            data.get('description'),
+            data.get('formula'),
+            current_time,
+            current_time
+        )
+        
+        return execute_query(query, params)
+    
+    @classmethod
+    def get_by_id(cls, id):
+        query = 'SELECT * FROM salary_groups WHERE id = ?'
+        return execute_query(query, (id,), one=True)
+    
+    @classmethod
+    def get_all(cls):
+        query = 'SELECT * FROM salary_groups ORDER BY name'
+        return execute_query(query)
+    
+    @classmethod
+    def update(cls, id, data):
+        query = '''
+        UPDATE salary_groups SET 
+            name = ?,
+            description = ?,
+            formula = ?,
+            updated_at = ?
+        WHERE id = ?
+        '''
+        
+        current_record = cls.get_by_id(id)
+        if not current_record:
+            return None
+        
+        current_time = get_current_time()
+        
+        params = (
+            data.get('name', current_record['name']),
+            data.get('description', current_record['description']),
+            data.get('formula', current_record['formula']),
+            current_time,
+            id
+        )
+        
+        execute_query(query, params)
+        return cls.get_by_id(id)
+    
+    @classmethod
+    def delete(cls, id):
+        query = 'DELETE FROM salary_groups WHERE id = ?'
+        return execute_query(query, (id,))
+
+class SalaryRecord(BaseModel):
+    """薪资记录模型"""
+    
+    @classmethod
+    def create(cls, data):
+        query = '''
+        INSERT INTO salary_records 
+            (employee_id, month, base_salary, actual_salary, deductions, 
+             insurance, tax, details, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        '''
+        
+        details = json.dumps(data.get('details', {}))
+        current_time = get_current_time()
+        
+        params = (
+            data.get('employee_id'),
+            data.get('month'),
+            data.get('base_salary', 0),
+            data.get('actual_salary', 0),
+            data.get('deductions', 0),
+            data.get('insurance', 0),
+            data.get('tax', 0),
+            details,
+            current_time
+        )
+        
+        return execute_query(query, params)
+    
+    @classmethod
+    def get_by_id(cls, id):
+        query = 'SELECT * FROM salary_records WHERE id = ?'
+        return execute_query(query, (id,), one=True)
+    
+    @classmethod
+    def get_by_employee_and_month(cls, employee_id, month):
+        query = 'SELECT * FROM salary_records WHERE employee_id = ? AND month = ?'
+        return execute_query(query, (employee_id, month), one=True)
+    
+    @classmethod
+    def get_by_month(cls, month):
+        query = 'SELECT * FROM salary_records WHERE month = ? ORDER BY employee_id'
+        return execute_query(query, (month,))
+    
+    @classmethod
+    def update(cls, id, data):
+        query = '''
+        UPDATE salary_records SET 
+            employee_id = ?,
+            month = ?,
+            base_salary = ?,
+            actual_salary = ?,
+            deductions = ?,
+            insurance = ?,
+            tax = ?,
+            details = ?
+        WHERE id = ?
+        '''
+        
+        current_record = cls.get_by_id(id)
+        if not current_record:
+            return None
+        
+        details = json.dumps(data.get('details', {}))
+        
+        params = (
+            data.get('employee_id', current_record['employee_id']),
+            data.get('month', current_record['month']),
+            data.get('base_salary', current_record['base_salary']),
+            data.get('actual_salary', current_record['actual_salary']),
+            data.get('deductions', current_record['deductions']),
+            data.get('insurance', current_record['insurance']),
+            data.get('tax', current_record['tax']),
+            details,
+            id
+        )
+        
+        execute_query(query, params)
+        return cls.get_by_id(id)
+    
+    @classmethod
+    def delete(cls, id):
+        query = 'DELETE FROM salary_records WHERE id = ?'
+        return execute_query(query, (id,))
