@@ -2,6 +2,7 @@ import logging
 import os
 import traceback
 from datetime import datetime
+from flask import jsonify
 
 # 配置日志
 log_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'logs')
@@ -15,6 +16,50 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger('hrzhushou')
+
+def register_error_handlers(app):
+    """注册全局错误处理器
+    
+    Args:
+        app: Flask应用实例
+    """
+    
+    @app.errorhandler(400)
+    def bad_request(error):
+        ErrorHandler.log_error(error)
+        return jsonify({
+            'success': False,
+            'error': '请求参数错误',
+            'message': ErrorHandler.format_user_error(error)
+        }), 400
+    
+    @app.errorhandler(404)
+    def not_found(error):
+        ErrorHandler.log_error(error)
+        return jsonify({
+            'success': False,
+            'error': '资源不存在',
+            'message': ErrorHandler.format_user_error(error)
+        }), 404
+    
+    @app.errorhandler(500)
+    def internal_server_error(error):
+        ErrorHandler.log_error(error)
+        return jsonify({
+            'success': False,
+            'error': '服务器内部错误',
+            'message': ErrorHandler.format_user_error(error)
+        }), 500
+    
+    # 注册自定义异常处理
+    @app.errorhandler(Exception)
+    def handle_exception(error):
+        ErrorHandler.log_error(error)
+        return jsonify({
+            'success': False,
+            'error': '未处理的异常',
+            'message': ErrorHandler.format_user_error(error)
+        }), 500
 
 class ErrorHandler:
     """错误处理服务，提供统一的错误处理机制"""
