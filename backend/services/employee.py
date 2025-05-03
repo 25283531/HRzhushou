@@ -1,7 +1,7 @@
 import json
 from datetime import datetime
-from database.models import Employee, PositionChange
-from database.db import get_current_time
+from backend.database.models import Employee, PositionChange
+from backend.database.db import get_current_time
 
 class EmployeeService:
     """员工信息服务类，处理员工基本信息和职位变动"""
@@ -41,11 +41,21 @@ class EmployeeService:
         if not employee_data.get('name'):
             raise ValueError("员工姓名不能为空")
         
-        if not employee_data.get('employee_id') and not employee_data.get('id_card'):
-            raise ValueError("员工工号和身份证号至少需要提供一项")
+        if not employee_data.get('employee_number'):
+            raise ValueError("员工工号不能为空")
+        if not employee_data.get('id_card_number'):
+            raise ValueError("身份证号不能为空")
+        # 可以添加更复杂的身份证号格式验证逻辑
+        
+        # 字段名称转换，确保与数据库模型匹配
+        db_employee_data = employee_data.copy()
+        if 'employee_number' in db_employee_data:
+            db_employee_data['employee_id'] = db_employee_data.pop('employee_number')
+        if 'id_card_number' in db_employee_data:
+            db_employee_data['id_card'] = db_employee_data.pop('id_card_number')
         
         # 创建员工记录
-        return Employee.create(employee_data)
+        return Employee.create(db_employee_data)
     
     def update_employee(self, employee_id, employee_data):
         """更新员工信息

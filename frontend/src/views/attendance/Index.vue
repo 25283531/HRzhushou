@@ -12,6 +12,40 @@
         </div>
       </template>
       
+      <!-- 筛选表单 -->
+      <el-form :inline="true" :model="filterForm" class="filter-form">
+        <el-form-item label="月份">
+          <el-date-picker
+            v-model="filterForm.month"
+            type="month"
+            placeholder="选择月份"
+            format="YYYY-MM"
+            value-format="YYYY-MM" />
+        </el-form-item>
+        <el-form-item label="员工">
+          <el-select v-model="filterForm.employeeId" placeholder="选择员工" clearable>
+            <el-option
+              v-for="item in employees"
+              :key="item.id"
+              :label="item.name"
+              :value="item.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="状态">
+          <el-select v-model="filterForm.status" placeholder="选择状态" clearable>
+            <el-option label="正常" value="正常" />
+            <el-option label="迟到" value="迟到" />
+            <el-option label="早退" value="早退" />
+            <el-option label="缺卡" value="缺卡" />
+            <el-option label="旷工" value="旷工" />
+          </el-select>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="handleFilter">查询</el-button>
+          <el-button @click="resetFilter">重置</el-button>
+        </el-form-item>
+      </el-form>
+      
       <!-- 考勤数据表格 -->
       <el-table
         v-loading="loading"
@@ -252,9 +286,20 @@ const attendanceRules = reactive({
   absentDeduction: 100
 })
 
+// 员工数据
+const employees = ref([])
+
+// 筛选表单
+const filterForm = reactive({
+  month: new Date().toISOString().slice(0, 7), // 默认当前月份
+  employeeId: '',
+  status: ''
+})
+
 // 生命周期钩子
 onMounted(() => {
   fetchAttendanceData()
+  fetchEmployees()
   
   // 初始化备份服务
   backupService.updateSettings({
@@ -274,72 +319,47 @@ onUnmounted(() => {
 const fetchAttendanceData = () => {
   loading.value = true
   
-  // 显示加载指示器（仅当数据量大时）
-  let loadingInstance = null;
-  const loadingTimer = setTimeout(() => {
-    loadingInstance = ElLoading.service({
-      target: '.attendance-container',
-      text: '正在加载数据...',
-      background: 'rgba(255, 255, 255, 0.7)'
-    });
-  }, 300); // 如果300ms内加载完成，则不显示加载指示器
-  
-  // 这里应该是实际的API调用
-  // 使用Web Worker处理大量数据，避免UI卡顿
-  setTimeout(() => {
-    // 模拟从API获取的原始数据
-    const rawData = [
-      {
-        id: 1,
-        employee_name: '张三',
-        employee_number: '001',
-        date: '2023-11-01',
-        check_in: '09:00:00',
-        check_out: '18:00:00'
-      },
-      {
-        id: 2,
-        employee_name: '李四',
-        employee_number: '002',
-        date: '2023-11-01',
-        check_in: '09:15:00',
-        check_out: '18:00:00'
-      }
-    ];
+  // 导入API模块 - 修正导入路径
+  import('../../api').then(({ default: api }) => {
+    // 构建查询参数
+    const params = {
+      month: filterForm.month,
+      page: currentPage.value,
+      page_size: pageSize.value
+    }
     
-    // 使用Web Worker处理考勤数据
-    processAttendanceData({
-      attendanceRecords: rawData,
-      rules: attendanceRules
-    }).then(result => {
-      // 更新考勤数据
-      attendanceData.value = result.processedRecords;
-      total.value = result.processedRecords.length;
-      
-      // 清除加载定时器
-      clearTimeout(loadingTimer);
-      
-      // 关闭加载指示器
-      if (loadingInstance) {
-        loadingInstance.close();
-      }
-      
-      loading.value = false;
-    }).catch(error => {
-      console.error('处理考勤数据失败:', error);
-      ElMessage.error(`处理考勤数据失败: ${error.message}`);
-      
-      // 清除加载定时器
-      clearTimeout(loadingTimer);
-      
-      // 关闭加载指示器
-      if (loadingInstance) {
-        loadingInstance.close();
-      }
-      
-      loading.value = false;
-    });
-  }, 500);
+    // 调用API获取考勤数据
+    api.get('/attendance/list', { params })
+      .then(response => {
+        if (response && response.success) {
+          attendanceData.value = response.data.items || []
+          total.value = response.data.total || 0
+        } else {
+          ElMessage.error(response?.error || '获取考勤数据失败')
+          attendanceData.value = []
+          total.value = 0
+        }
+      })
+      .catch(error => {
+        console.error('获取考勤数据失败:', error)
+        ElMessage.error('获取考勤数据失败: ' + (error.message || '未知错误'))
+        attendanceData.value = []
+        total.value = 0
+      })
+      .finally(() => {
+        loading.value = false
+      })
+  }).catch(error => {
+    console.error('导入API模块失败:', error)
+    ElMessage.error('系统错误: 无法加载API模块')
+    loading.value = false
+  })
+}
+
+// 获取员工数据
+const fetchEmployees = () => {
+  // TODO: 实现实际的员工数据获取逻辑
+  employees.value = []
 }
 
 // 显示导入对话框
@@ -458,75 +478,77 @@ const submitImport = () => {
   // 添加自定义字段
   formData.append('customFields', JSON.stringify(customFields.value));
   
-  // 这里应该调用API上传文件
-  // 示例代码，实际应该使用axios或fetch调用API
-  setTimeout(() => {
-    // 模拟导入的数据
-    const importedData = [
-      {
-        employee_name: '张三',
-        employee_number: '001',
-        date: '2023-11-01',
-        check_in: '09:00:00',
-        check_out: '18:00:00'
-      },
-      {
-        employee_name: '李四',
-        employee_number: '002',
-        date: '2023-11-01',
-        check_in: '09:15:00',
-        check_out: '18:00:00'
+  // 调用API上传文件
+  import('../../api').then(({ default: api }) => {
+    api.post('/attendance/import', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
       }
-    ];
-    
-    // 使用Web Worker处理考勤数据
-    processAttendanceData({
-      attendanceRecords: importedData,
-      rules: attendanceRules
-    }).then(result => {
-      // 验证处理后的数据
-      const validationResult = validateAttendanceRecords(result.processedRecords);
-      
-      if (!validationResult.valid) {
-        // 显示验证错误
-        ElMessageBox.alert(
-          `导入数据验证失败，请检查数据格式：\n${validationResult.errors.join('\n')}`,
-          '数据验证错误',
-          { confirmButtonText: '确定', type: 'error' }
-        );
-        loadingInstance.close();
-        return;
-      }
-      
-      // 更新考勤数据
-      attendanceData.value = result.processedRecords;
-      total.value = result.processedRecords.length;
-      
-      // 创建数据备份
-      backupService.createBackup().then(backupResult => {
-        if (backupResult.success) {
-          console.log('数据备份成功:', backupResult.fileName);
+    })
+      .then(response => {
+        if (response && response.success) {
+          // 更新考勤数据
+          ElMessage.success(`成功导入 ${response.data.imported_count} 条考勤记录`);
+          
+          // 如果有错误信息，显示警告
+          if (response.data.errors && response.data.errors.length > 0) {
+            ElMessageBox.alert(
+              `导入过程中有 ${response.data.errors.length} 个警告：\n${response.data.errors.join('\n')}`,
+              '导入警告',
+              { confirmButtonText: '确定', type: 'warning' }
+            );
+          }
+          
+          // 创建数据备份
+          backupService.createBackup().then(backupResult => {
+            if (backupResult.success) {
+              console.log('数据备份成功:', backupResult.fileName);
+            } else {
+              console.error('数据备份失败:', backupResult.message);
+            }
+          });
+          
+          // 刷新数据
+          fetchAttendanceData();
+          importDialogVisible.value = false;
         } else {
-          console.error('数据备份失败:', backupResult.message);
+          ElMessage.error(response?.error || '导入考勤数据失败');
         }
+      })
+      .catch(error => {
+        console.error('导入考勤数据失败:', error);
+        ElMessage.error('导入失败: ' + (error.message || '未知错误'));
+      })
+      .finally(() => {
+        loadingInstance.close();
       });
-      
-      loadingInstance.close();
-      ElMessage.success(`成功导入 ${result.processedRecords.length} 条考勤记录`);
-      importDialogVisible.value = false;
-    }).catch(error => {
-      console.error('处理考勤数据失败:', error);
-      ElMessage.error(`处理考勤数据失败: ${error.message}`);
-      loadingInstance.close();
-    });
-  }, 1000);
+  }).catch(error => {
+    console.error('导入API模块失败:', error);
+    ElMessage.error('系统错误: 无法加载API模块');
+    loadingInstance.close();
+  });
 }
 
 // 保存考勤规则
 const saveAttendanceRules = () => {
-  // 这里应该是实际的保存逻辑
-  ElMessage.success('考勤规则保存成功')
-  attendanceRuleDialogVisible.value = false
+  import('../../api').then(({ default: api }) => {
+    api.post('/attendance/rules', attendanceRules)
+      .then(response => {
+        if (response && response.success) {
+          ElMessage.success('考勤规则保存成功');
+          attendanceRuleDialogVisible.value = false;
+        } else {
+          ElMessage.error(response?.error || '保存考勤规则失败');
+        }
+      })
+      .catch(error => {
+        console.error('保存考勤规则失败:', error);
+        ElMessage.error('保存失败: ' + (error.message || '未知错误'));
+      });
+  }).catch(error => {
+    console.error('导入API模块失败:', error);
+    ElMessage.error('系统错误: 无法加载API模块');
+  });
 }
 
 // 处理编辑
@@ -548,11 +570,27 @@ const handleDelete = (row) => {
   )
     .then(() => {
       // 这里应该是实际的删除逻辑
-      ElMessage({
-        type: 'success',
-        message: '删除成功',
+      import('../../api').then(({ default: api }) => {
+        api.delete(`/attendance/${row.id}`)
+          .then(response => {
+            if (response && response.success) {
+              ElMessage({
+                type: 'success',
+                message: '删除成功',
+              })
+              fetchAttendanceData() // 刷新数据
+            } else {
+              ElMessage.error(response?.error || '删除失败')
+            }
+          })
+          .catch(error => {
+            console.error('删除考勤记录失败:', error)
+            ElMessage.error('删除失败: ' + (error.message || '未知错误'))
+          })
+      }).catch(error => {
+        console.error('导入API模块失败:', error)
+        ElMessage.error('系统错误: 无法加载API模块')
       })
-      fetchAttendanceData() // 刷新数据
     })
     .catch(() => {
       // 取消删除
@@ -581,6 +619,16 @@ const getStatusTagType = (status) => {
     '旷工': 'danger'
   }
   return statusMap[status] || 'info'
+}
+
+const handleFilter = () => {
+  fetchAttendanceData()
+}
+const resetFilter = () => {
+  filterForm.month = new Date().toISOString().slice(0, 7)
+  filterForm.employeeId = ''
+  filterForm.status = ''
+  fetchAttendanceData()
 }
 </script>
 
@@ -632,6 +680,15 @@ const getStatusTagType = (status) => {
   margin: 0;
   font-size: 16px;
   font-weight: normal;
+}
+
+.custom-field-row {
+  display: flex;
+  align-items: center;
+}
+
+.filter-form {
+  margin-bottom: 20px;
 }
 
 .custom-field-row {

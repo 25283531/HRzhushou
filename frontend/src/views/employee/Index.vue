@@ -252,9 +252,10 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Upload, UploadFilled, Search, Refresh } from '@element-plus/icons-vue'
+import { validateEmployeeRecords, validateExcelFile } from '../../utils/dataValidator'
 
 // 数据加载状态
 const loading = ref(false)
@@ -377,46 +378,39 @@ onMounted(() => {
 // 获取员工数据
 const fetchEmployeeData = () => {
   loading.value = true
-  // 模拟API调用
-  setTimeout(() => {
-    // 这里应该是实际的API调用
-    employeeData.value = [
-      {
-        id: 1,
-        name: '张三',
-        employee_number: '001',
-        id_card_number: '110101199001011234',
-        phone: '13800138000',
-        department_level1: '技术部',
-        department_level2: '开发组',
-        position: '高级工程师',
-        entry_date: '2020-01-01',
-        status: '在职',
-        salary_group: '技术专家薪资组',
-        social_security_group: '标准社保组',
-        bank_account: '6222021234567890123',
-        remarks: '技术骨干'
-      },
-      {
-        id: 2,
-        name: '李四',
-        employee_number: '002',
-        id_card_number: '110101199002022345',
-        phone: '13900139000',
-        department_level1: '人事部',
-        department_level2: '招聘组',
-        position: 'HR专员',
-        entry_date: '2021-03-01',
-        status: '在职',
-        salary_group: '普通员工薪资组',
-        social_security_group: '标准社保组',
-        bank_account: '6222021234567890124',
-        remarks: ''
-      }
-    ]
-    total.value = 2
-    loading.value = false
-  }, 500)
+  
+  // 导入API模块
+  import('../../api').then(({ default: api }) => {
+    // 构建查询参数
+    const params = {
+      name: searchForm.name,
+      employee_number: searchForm.employeeNumber,
+      department: searchForm.department,
+      page: currentPage.value,
+      page_size: pageSize.value
+    }
+    
+    // 调用API获取员工数据
+    api.get('/employee/list', { params })
+      .then(response => {
+        if (response.success) {
+          employeeData.value = response.data.items || []
+          total.value = response.data.total || 0
+        } else {
+          ElMessage.error(response.error || '获取员工数据失败')
+          employeeData.value = []
+          total.value = 0
+        }
+        loading.value = false
+      })
+      .catch(error => {
+        console.error('获取员工数据失败:', error)
+        ElMessage.error('获取员工数据失败')
+        employeeData.value = []
+        total.value = 0
+        loading.value = false
+      })
+  })
 }
 
 // 搜索
@@ -455,10 +449,30 @@ const handleEdit = (row) => {
 const submitEmployeeForm = () => {
   employeeFormRef.value.validate((valid) => {
     if (valid) {
-      // 这里应该是实际的保存逻辑
-      ElMessage.success(isEdit.value ? '员工信息更新成功' : '员工添加成功')
-      employeeDialogVisible.value = false
-      fetchEmployeeData() // 刷新数据
+      loading.value = true
+      
+      // 导入API模块
+      import('../../api').then(({ default: api }) => {
+        // 根据是编辑还是新增选择不同的API
+        const apiCall = isEdit.value 
+          ? api.put(`/employee/update/${employeeForm.id}`, employeeForm)
+          : api.post('/employee/add', employeeForm)
+        
+        apiCall.then(response => {
+          if (response.success) {
+            ElMessage.success(isEdit.value ? '员工信息更新成功' : '员工添加成功')
+            employeeDialogVisible.value = false
+            fetchEmployeeData() // 刷新数据
+          } else {
+            ElMessage.error(response.error || '操作失败')
+          }
+          loading.value = false
+        }).catch(error => {
+          console.error('保存员工信息失败:', error)
+          ElMessage.error('保存员工信息失败')
+          loading.value = false
+        })
+      })
     } else {
       return false
     }

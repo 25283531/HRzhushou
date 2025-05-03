@@ -238,9 +238,17 @@ class Attendance(BaseModel):
     
     @classmethod
     def get_by_month(cls, month):
-        # 获取指定月份的所有考勤记录
-        query = 'SELECT * FROM attendance WHERE date LIKE ? ORDER BY employee_id, date'
-        return execute_query(query, (f"{month}%",))
+        """获取指定月份的考勤数据
+        
+        Args:
+            month: 月份，格式为YYYY-MM
+            
+        Returns:
+            考勤数据列表
+        """
+        query = f"SELECT * FROM attendance WHERE date LIKE '{month}%' ORDER BY date DESC"
+        from backend.database.db import execute_query
+        return execute_query(query)
     
     @classmethod
     def update(cls, id, data):

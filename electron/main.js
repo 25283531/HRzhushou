@@ -84,7 +84,7 @@ function createWindow() {
     );
   } else {
     // 开发环境下，加载开发服务器地址
-    mainWindow.loadURL('http://localhost:3000');
+    mainWindow.loadURL('http://localhost:5566');
     
     // 打开开发者工具
     mainWindow.webContents.openDevTools();

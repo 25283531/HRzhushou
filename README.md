@@ -29,6 +29,12 @@
 - **统一错误处理**：新增`errorHandler.js`服务，提供统一的错误处理机制，友好的用户提示和日志记录
 - **数据备份功能**：新增`backupService.js`服务，提供数据自动备份功能，防止数据丢失或损坏
 
+### 5. 应用程序稳定性提升
+
+- **线程管理**：新增`thread_manager.py`工具，提供线程池管理和监控功能，确保后台任务有序执行和正确关闭
+- **资源监控**：新增`resource_monitor.py`工具，监控系统资源使用情况，防止内存泄漏和资源耗尽
+- **应用生命周期管理**：新增`app_lifecycle.py`工具，优化应用程序启动和退出流程，解决了异常退出时资源未释放的问题
+
 ## 主要功能
 
 ### 1. 考勤数据导入与管理
@@ -59,7 +65,7 @@
 
 ## 技术栈
 - 前端：Vue 3 + Vite
-- 后端：Electron + Node.js
+- 后端：Flask + Electron + Node.js
 - 数据库：SQLite3
 - 应用程序打包：Electron
 
@@ -127,7 +133,16 @@ HRzhushou/
 │   │   ├── employee.py       # 员工信息处理
 │   │   ├── salary.py         # 薪资计算
 │   │   └── social_security.py # 社保处理
-│   └── utils/                # 工具函数
+│   ├── utils/                # 工具函数
+│   │   ├── app_lifecycle.py  # 应用生命周期管理
+│   │   ├── backup_service.py # 数据备份服务
+│   │   ├── data_validator.py # 数据验证工具
+│   │   ├── date_parser.py    # 日期解析工具
+│   │   ├── error_handler.py  # 错误处理服务
+│   │   ├── resource_monitor.py # 资源监控工具
+│   │   └── thread_manager.py # 线程管理工具
+│   └── tests/                # 测试代码
+│       └── test_app_exit.py  # 应用退出测试
 └── electron/                 # Electron打包
     ├── main.js               # 主进程
     └── preload.js            # 预加载脚本
@@ -136,7 +151,7 @@ HRzhushou/
 ## 开发流程
 1. 需求分析和设计：明确项目需求，进行数据库设计和代码结构规划
 2. 前端开发：使用Vite搭建前端界面，实现各个功能模块的交互
-3. 后端开发：使用Python实现数据导入、薪资计算和数据库管理等功能
+3. 后端开发：使用Flask和Node.js实现数据导入、薪资计算和数据库管理等功能
 4. 应用程序打包：使用Electron将前端和后端代码打包成桌面应用程序
 5. 测试和优化：对软件进行测试，修复发现的问题，优化性能
 6. 部署和发布：将软件部署到目标环境，提供给用户使用
@@ -145,7 +160,7 @@ HRzhushou/
 
 ### 开发环境
 1. 克隆仓库：`git clone [仓库地址]`
-2. 安装依赖：`npm install`
+2. 安装依赖：`npm install` 和 `pip install -r backend/requirements.txt`
 3. 启动前端开发服务器：`npm run dev`
 4. 启动后端服务：`python backend/app.py`
 

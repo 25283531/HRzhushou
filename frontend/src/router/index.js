@@ -12,7 +12,7 @@ const routes = [
     path: '/attendance',
     name: 'Attendance',
     component: () => import('../views/attendance/Index.vue'),
-    meta: { title: '考勤管理' }
+    meta: { requiresAuth: true, title: '考勤管理' }
   },
   {
     path: '/employee',

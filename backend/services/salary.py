@@ -1,11 +1,12 @@
 import json
 from datetime import datetime, timedelta
 import calendar
-from database.models import SalaryRecord, Employee
-from database.db import get_current_time
-from .employee import EmployeeService
-from .attendance import AttendanceService
-from .social_security import SocialSecurityService
+from backend.database.models import SalaryRecord, Employee
+from backend.database.db import get_current_time
+from backend.database.models import SalaryGroup  # 假设存在 SalaryGroup 模型
+from backend.services.employee import EmployeeService
+from backend.services.attendance import AttendanceService
+from backend.services.social_security import SocialSecurityService
 
 class SalaryService:
     """薪资计算服务类，处理薪资计算和薪资记录管理"""
@@ -14,6 +15,7 @@ class SalaryService:
         self.employee_service = EmployeeService()
         self.attendance_service = AttendanceService()
         self.social_security_service = SocialSecurityService()
+        # 可以在这里初始化 SalaryGroup 的数据库操作，如果需要的话
     
     def calculate_salary(self, data):
         """计算薪资
@@ -179,6 +181,40 @@ class SalaryService:
         
         # 如果应纳税所得额超过最高档
         return taxable_amount * 0.45 - 15160
+
+    def create_salary_group(self, group_data):
+        """创建新的薪资组
+
+        Args:
+            group_data: 包含薪资组信息的字典，例如 {'name': 'Group Name', 'description': '描述', 'formula': '公式'}
+
+        Returns:
+            创建的薪资组对象或其ID
+        """
+        # 验证输入数据
+        name = group_data.get('name')
+        if not name:
+            raise ValueError("薪资组名称不能为空")
+
+        # 检查名称是否已存在
+        from backend.database.db import execute_query
+        existing_group = execute_query('SELECT * FROM salary_groups WHERE name = ?', (name,), one=True)
+        if existing_group:
+            raise ValueError(f"名称为 '{name}' 的薪资组已存在")
+
+        # 准备数据
+        data = {
+            'name': name,
+            'description': group_data.get('description', ''),
+            'formula': json.dumps(group_data.get('formula', {})) if isinstance(group_data.get('formula'), dict) else group_data.get('formula', '')
+        }
+        
+        # 创建薪资组记录
+        group_id = SalaryGroup.create(data)
+        
+        # 获取创建的薪资组信息
+        new_group = SalaryGroup.get_by_id(group_id)
+        return new_group
     
     def _save_salary_record(self, employee_id, month, salary_result):
         """保存薪资记录

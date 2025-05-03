@@ -1,8 +1,3 @@
-/**
- * 数据验证工具
- * 用于在数据导入环节增加更严格的验证
- */
-
 import { parseDate } from './dateParser';
 
 /**
@@ -178,4 +173,41 @@ export function validateSalaryGroup(salaryGroup) {
       }
       
       if (!item.type || !['收入', '扣除'].includes(item.type)) {
-        errors.push(`第 ${index + 1} 个薪资项类型不正确，应为"收入
+        errors.push(`第 ${index + 1} 个薪资项类型不正确，应为"收入"或"扣除"`);
+      }
+    });
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors
+  };
+}
+/**
+ * 验证Excel文件格式
+ * @param {File} file
+ * @returns {Object} - { valid: boolean, errors: string[] }
+ */
+export function validateExcelFile(file) {
+  const errors = [];
+  if (!file) {
+    return { valid: false, errors: ['未选择文件'] };
+  }
+  const allowedTypes = [
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.ms-excel',
+    'text/csv'
+  ];
+  if (!allowedTypes.includes(file.type)) {
+    errors.push('文件格式不支持，仅支持Excel或CSV文件');
+  }
+  // 10MB大小限制
+  const maxSize = 10 * 1024 * 1024;
+  if (file.size > maxSize) {
+    errors.push('文件大小不能超过10MB');
+  }
+  return {
+    valid: errors.length === 0,
+    errors
+  };
+}

@@ -11,12 +11,12 @@ export default defineConfig({
     }
   },
   server: {
-    port: 3000,
+    port: 5566,
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
+        target: 'http://localhost:3000', // 后端服务地址
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, '')
+        rewrite: (path) => path.replace(/^\/api/, '/api')
       }
     }
   },

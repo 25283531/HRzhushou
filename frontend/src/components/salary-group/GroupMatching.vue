@@ -41,7 +41,7 @@
       v-model="matchDialogVisible"
       title="添加匹配规则"
       width="500px">
-      <el-form :model="matchForm" :rules="matchRules" ref="matchFormRef" label-width="100px">
+      <el-form :model="matchForm" :rules="matchFormRules" ref="matchFormRef" label-width="100px">
         <el-form-item label="匹配类型" prop="type">
           <el-select v-model="matchForm.type" placeholder="请选择匹配类型" style="width: 100%">
             <el-option label="部门" value="部门" />
@@ -121,7 +121,7 @@ const matchForm = reactive({
 })
 
 // 匹配规则表单验证
-const matchRules = {
+const matchFormRules = {
   type: [
     { required: true, message: '请选择匹配类型', trigger: 'change' }
   ],

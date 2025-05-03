@@ -1,8 +1,8 @@
 import json
 from datetime import datetime, timedelta
 import calendar
-from database.models import Employee
-from database.db import execute_query, get_current_time
+from backend.database.models import Employee
+from backend.database.db import execute_query, get_current_time
 
 class SocialSecurityService:
     """社保处理服务类，处理社保计算和管理"""

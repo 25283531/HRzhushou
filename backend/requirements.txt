@@ -2,18 +2,20 @@
 
 # Web框架
 flask==2.0.1
+flask_cors==3.0.10
+flask_sqlalchemy
+flask_migrate
+flask_jwt_extended
 
 # 数据处理
-pandas==1.3.3
+pandas==2.0.3
 openpyxl==3.0.9
 xlrd==2.0.1
+requests
 
 # 数据库
-sqlite3==2.6.0
+# sqlite3是Python标准库的一部分，不需要通过pip安装
 
 # 工具库
 python-dateutil==2.8.2
-numpy==1.21.2
-
-# 跨域支持
-flask-cors==3.0.10
+numpy==1.24.3

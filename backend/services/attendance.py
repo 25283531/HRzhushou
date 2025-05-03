@@ -2,8 +2,8 @@ import os
 import pandas as pd
 import json
 from datetime import datetime
-from database.models import Attendance, Employee
-from database.db import get_current_time
+from backend.database.models import Attendance, Employee
+from backend.database.db import get_current_time
 
 class AttendanceService:
     """考勤数据服务类，处理考勤数据的导入和查询"""
@@ -126,15 +126,26 @@ class AttendanceService:
             month: 月份，格式为YYYY-MM，如果为None则返回所有数据
             
         Returns:
-            考勤数据列表
+            包含考勤数据列表和总数的字典
         """
-        if month:
-            return Attendance.get_by_month(month)
-        else:
-            # 获取所有考勤数据可能会很多，这里可以考虑分页或限制返回最近的数据
-            query = 'SELECT * FROM attendance ORDER BY date DESC LIMIT 1000'
-            from database.db import execute_query
-            return execute_query(query)
+        try:
+            if month:
+                # 获取指定月份的考勤数据
+                result = Attendance.get_by_month(month)
+                return {'items': result, 'total': len(result)}
+            else:
+                # 获取所有考勤数据可能会很多，这里可以考虑分页或限制返回最近的数据
+                query = 'SELECT * FROM attendance ORDER BY date DESC LIMIT 1000'
+                # 使用正确的导入路径
+                from backend.database.db import execute_query
+                result = execute_query(query)
+                return {'items': result, 'total': len(result)}
+        except Exception as e:
+            # 记录错误并返回空结果，避免前端崩溃
+            import logging
+            logger = logging.getLogger('hrzhushou.attendance')
+            logger.error(f"获取考勤数据失败: {str(e)}")
+            return {'items': [], 'total': 0}
     
     def get_employee_attendance(self, employee_id, month):
         """获取指定员工在指定月份的考勤数据

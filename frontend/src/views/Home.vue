@@ -76,7 +76,7 @@
         <h2>快速操作</h2>
       </el-col>
       <el-col :xs="24" :sm="8" v-for="(item, index) in quickAccessItems" :key="index">
-        <el-card shadow="hover" class="quick-card" @click="navigateTo(item.path)">
+        <el-card shadow="hover" class="quick-card" @click="navigateTo(item.path, item)">
           <div class="quick-card-content">
             <el-icon :size="32"><component :is="item.icon" /></el-icon>
             <h3>{{ item.title }}</h3>
@@ -92,6 +92,8 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { User, Money, Service, Calendar, Upload, Document, DataAnalysis } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import api from '../api/index'
 
 const router = useRouter()
 
@@ -101,7 +103,36 @@ const quickAccessItems = ref([
     title: '导入考勤数据',
     description: '从Excel文件导入员工考勤数据',
     icon: 'Upload',
-    path: '/attendance'
+    path: '/attendance',
+    action: () => {
+      ElMessageBox.prompt('请选择考勤数据文件', '导入考勤数据', {
+        confirmButtonText: '上传',
+        cancelButtonText: '取消',
+        inputType: 'file',
+        inputAttributes: {
+          accept: '.xlsx,.xls,.csv'
+        }
+      }).then(({ value }) => {
+        if (value && value.files && value.files.length > 0) {
+          const formData = new FormData()
+          formData.append('file', value.files[0])
+          
+          // 调用API上传文件
+          api.post('/attendance/import', formData, {
+            headers: {
+              'Content-Type': 'multipart/form-data'
+            }
+          }).then(response => {
+            ElMessage.success('考勤数据导入成功')
+          }).catch(error => {
+            console.error('导入失败:', error)
+            ElMessage.error('考勤数据导入失败')
+          })
+        }
+      }).catch(() => {
+        // 用户取消上传
+      })
+    }
   },
   {
     title: '员工管理',
@@ -136,8 +167,13 @@ const quickAccessItems = ref([
 ])
 
 // 导航到指定路径
-const navigateTo = (path) => {
-  router.push(path)
+const navigateTo = (path, item) => {
+  // 如果有自定义action，则执行action
+  if (item && item.action) {
+    item.action()
+  } else {
+    router.push(path)
+  }
 }
 </script>
 

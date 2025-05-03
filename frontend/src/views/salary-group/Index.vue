@@ -192,9 +192,10 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
+import { validateSalaryGroup, validateExcelFile } from '../../utils/dataValidator'
 import { salaryGroupApi, formulaUtils } from '@/api/salaryGroup'
 import GroupMatching from '@/components/salary-group/GroupMatching.vue'
 
