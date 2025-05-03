@@ -302,17 +302,25 @@ onMounted(() => {
   fetchEmployees()
   
   // 初始化备份服务
-  backupService.updateSettings({
-    autoBackup: true,
-    backupInterval: 12 * 60 * 60 * 1000, // 12小时
-    includeAttendance: true
-  });
+  try {
+    backupService.updateSettings({
+      autoBackup: true,
+      backupInterval: 12 * 60 * 60 * 1000, // 12小时
+      includeAttendance: true
+    });
+  } catch (error) {
+    console.error('初始化备份服务失败:', error);
+  }
 })
 
 // 组件卸载时清理资源
 onUnmounted(() => {
-  // 停止自动备份
-  backupService.stopAutoBackup();
+  try {
+    // 停止自动备份
+    backupService.stopAutoBackup();
+  } catch (error) {
+    console.error('停止自动备份失败:', error);
+  }
 })
 
 // 获取考勤数据

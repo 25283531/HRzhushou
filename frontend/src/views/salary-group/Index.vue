@@ -268,10 +268,16 @@ const fetchSalaryGroups = async () => {
   loading.value = true
   try {
     const res = await salaryGroupApi.getAllGroups()
-    salaryGroups.value = res || []
+    if (res.success) {
+      salaryGroups.value = res.data.items || []
+    } else {
+      ElMessage.error(res.error || '获取薪资组失败')
+      salaryGroups.value = []
+    }
   } catch (error) {
     console.error('获取薪资组失败:', error)
     ElMessage.error('获取薪资组失败')
+    salaryGroups.value = []
   } finally {
     loading.value = false
   }

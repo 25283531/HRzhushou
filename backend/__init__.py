@@ -65,12 +65,14 @@ def register_blueprints(app):
         from .routes.employee import employee_bp
         from .routes.salary import salary_bp
         from .routes.social_security import social_security_bp
+        from .routes.salary_items import bp as salary_items_bp
         
         # 注册蓝图
         app.register_blueprint(attendance_bp, url_prefix='/api/attendance')
         app.register_blueprint(employee_bp, url_prefix='/api/employee')
         app.register_blueprint(salary_bp, url_prefix='/api/salary')
         app.register_blueprint(social_security_bp, url_prefix='/api/social-security')
+        app.register_blueprint(salary_items_bp, url_prefix='/api/salary-items')
     except ImportError as e:
         handle_fatal_error("无法导入路由模块，API无法正常工作", e)
     except Exception as e:

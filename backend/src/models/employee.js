@@ -11,40 +11,66 @@ const Employee = sequelize.define('Employee', {
     type: DataTypes.STRING,
     allowNull: false
   },
-  department: {
+  employee_number: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true
+  },
+  id_card_number: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true
+  },
+  department_level1: {
     type: DataTypes.STRING,
     allowNull: false
+  },
+  department_level2: {
+    type: DataTypes.STRING,
+    allowNull: true
   },
   position: {
     type: DataTypes.STRING,
     allowNull: false
   },
-  baseSalary: {
-    type: DataTypes.DECIMAL(10, 2),
+  entry_date: {
+    type: DataTypes.DATEONLY,
     allowNull: false
   },
-  joinDate: {
-    type: DataTypes.DATE,
-    allowNull: false
+  leave_date: {
+    type: DataTypes.DATEONLY,
+    allowNull: true
   },
   status: {
-    type: DataTypes.ENUM('在职', '离职', '休假'),
+    type: DataTypes.ENUM('在职', '离职', '试用期'),
     defaultValue: '在职'
   },
-  contact: {
+  salary_group: {
     type: DataTypes.STRING,
-    allowNull: false
+    allowNull: true
   },
-  email: {
+  social_security_group: {
     type: DataTypes.STRING,
-    allowNull: false,
-    validate: {
-      isEmail: true
-    }
+    allowNull: true
+  },
+  bank_account: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  phone: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  remarks: {
+    type: DataTypes.TEXT,
+    allowNull: true
   }
 }, {
+  tableName: 'employees',
   timestamps: true,
-  tableName: 'employees'
+  underscored: true,
+  createdAt: 'created_at',
+  updatedAt: 'updated_at'
 });
 
 module.exports = Employee; 

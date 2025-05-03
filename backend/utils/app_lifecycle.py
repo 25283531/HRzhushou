@@ -31,26 +31,26 @@ except ImportError:
         from utils.error_handler import ErrorHandler
         from database.db import close_all_connections, get_connection_stats, check_connection_leaks
 
+import logging
+import os
+from logging.handlers import RotatingFileHandler
+
 class AppLifecycleManager:
-    """应用程序生命周期管理器
-    
-    负责管理应用程序的启动和关闭过程，确保所有资源都能够正确初始化和释放。
-    提供统一的接口来启动和停止所有后台服务，并在应用程序退出时进行清理。
-    """
-    
-    def __init__(self):
+    def __init__(self, log_file_path='logs/app.log', log_file_size=10*1024*1024):
         """初始化应用程序生命周期管理器"""
+        # 配置日志
+        os.makedirs(os.path.dirname(log_file_path), exist_ok=True)
+        handler = RotatingFileHandler(log_file_path, maxBytes=log_file_size, backupCount=5)
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        handler.setFormatter(formatter)
         self.logger = logging.getLogger('hrzhushou.app_lifecycle')
+        self.logger.addHandler(handler)
+        self.logger.setLevel(logging.INFO)
         self.services_started = False
         self.exit_handlers_registered = False
-        
-        # 配置日志
-        log_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'logs')
-        os.makedirs(log_dir, exist_ok=True)
-        
         # 应用启动时间
         self.start_time = datetime.now()
-    
+
     def start_services(self):
         """启动所有后台服务"""
         if self.services_started:
@@ -194,7 +194,7 @@ class AppLifecycleManager:
                 import time
                 
                 # 每10分钟检查一次连接泄漏
-                while not stop_all_threads.is_stopping():
+                while not stop_all_threads.is_set():
                     try:
                         # 检查连接泄漏
                         leaks = check_connection_leaks()

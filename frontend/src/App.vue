@@ -24,9 +24,21 @@
             <el-icon><User /></el-icon>
             <span>员工管理</span>
           </el-menu-item>
+          <el-menu-item index="/position-levels">
+            <el-icon><Rank /></el-icon>
+            <span>职位职级</span>
+          </el-menu-item>
           <el-menu-item index="/salary-group">
             <el-icon><Money /></el-icon>
             <span>薪资组管理</span>
+          </el-menu-item>
+          <el-menu-item index="/salary-items">
+            <el-icon><List /></el-icon>
+            <span>薪酬项管理</span>
+          </el-menu-item>
+          <el-menu-item index="/matching-rules">
+            <el-icon><Setting /></el-icon>
+            <span>匹配规则管理</span>
           </el-menu-item>
           <el-menu-item index="/social-security">
             <el-icon><Service /></el-icon>
@@ -48,7 +60,7 @@
             <el-dropdown>
               <span class="el-dropdown-link">
                 管理员
-                <el-icon class="el-icon--right"><arrow-down /></el-icon>
+                <el-icon class="el-icon--right"><ArrowDown /></el-icon>
               </span>
               <template #dropdown>
                 <el-dropdown-menu>
@@ -73,7 +85,7 @@
 </template>
 
 <script setup>
-import { HomeFilled, Calendar, User, Money, Service, Document, DataAnalysis } from '@element-plus/icons-vue'
+import { HomeFilled, Calendar, User, Money, Service, Document, DataAnalysis, ArrowDown, List, Setting, Rank } from '@element-plus/icons-vue'
 </script>
 
 <style scoped>

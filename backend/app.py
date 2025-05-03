@@ -5,6 +5,7 @@ import atexit
 import signal
 import threading
 from flask import Flask
+from flask_cors import CORS
 
 # 全局错误标志，用于标记是否发生了致命错误
 fatal_error_occurred = False
@@ -24,6 +25,7 @@ def handle_fatal_error(error_message, exception=None):
 # 创建Flask应用
 try:
     app = Flask(__name__)
+    CORS(app)
 except Exception as e:
     handle_fatal_error("无法创建Flask应用", e)
 
@@ -36,6 +38,7 @@ try:
     
     # 尝试绝对导入
     from backend.database.db import init_db
+    from backend.models.salary_items import create_tables
 except ImportError as e:
     handle_fatal_error("无法导入数据库模块", e)
 
@@ -44,53 +47,27 @@ except ImportError as e:
 def setup():
     try:
         init_db()
+        create_tables()
     except Exception as e:
         handle_fatal_error("数据库初始化失败", e)
 
 # 注册路由
 try:
-    # 添加项目根目录到Python路径
-    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    if project_root not in sys.path:
-        sys.path.insert(0, project_root)
+    from backend.routes.attendance import attendance_bp
+    from backend.routes.employee import employee_bp
+    from backend.routes.salary import salary_bp
+    from backend.routes.social_security import social_security_bp
+    from backend.routes.salary_items import bp as salary_items_bp
+    from backend.routes.position_levels import bp as position_levels_bp
     
-    # 尝试从backend导入register_blueprints函数
-    from backend import register_blueprints
-    register_blueprints(app)
+    app.register_blueprint(attendance_bp, url_prefix='/api/attendance')
+    app.register_blueprint(employee_bp, url_prefix='/api/employee')
+    app.register_blueprint(salary_bp, url_prefix='/api/salary')
+    app.register_blueprint(social_security_bp, url_prefix='/api/social-security')
+    app.register_blueprint(salary_items_bp, url_prefix='/api/salary-items')
+    app.register_blueprint(position_levels_bp, url_prefix='/api/position-levels')
 except ImportError as e:
-    try:
-        # 尝试直接导入各个路由模块
-        from backend.routes import attendance, employee, salary, social_security
-        # 手动注册蓝图
-        app.register_blueprint(attendance.attendance_bp, url_prefix='/api/attendance')
-        app.register_blueprint(employee.employee_bp, url_prefix='/api/employee')
-        app.register_blueprint(salary.salary_bp, url_prefix='/api/salary')
-        app.register_blueprint(social_security.social_security_bp, url_prefix='/api/social-security')
-    except ImportError as e:
-        # 如果无法导入路由，这是致命错误
-        handle_fatal_error("无法导入路由模块，API无法正常工作", e)
-
-# 启用CORS
-try:
-    from flask_cors import CORS
-    CORS(app)
-except ImportError as e:
-    print("警告：无法导入flask_cors，跨域请求可能会被阻止")
-    print(f"错误详情: {str(e)}")
-    # 继续执行，这不是致命错误
-
-# 注册错误处理器
-try:
-    # 确保项目根目录在Python路径中
-    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    if project_root not in sys.path:
-        sys.path.insert(0, project_root)
-        
-    # 使用绝对导入
-    from backend.utils.error_handler import register_error_handlers
-    register_error_handlers(app)
-except ImportError as e:
-    handle_fatal_error("无法导入错误处理模块，API错误处理无法正常工作", e)
+    handle_fatal_error("无法导入路由模块", e)
 
 # 添加全局异常处理
 @app.errorhandler(Exception)

@@ -27,6 +27,24 @@ const routes = [
     meta: { title: '薪资组管理' }
   },
   {
+    path: '/salary-items',
+    name: 'SalaryItems',
+    component: () => import('../views/salary/SalaryItems.vue'),
+    meta: { title: '薪酬项管理' }
+  },
+  {
+    path: '/matching-rules',
+    name: 'MatchingRules',
+    component: () => import('../views/salary/MatchingRules.vue'),
+    meta: { title: '匹配规则管理' }
+  },
+  {
+    path: '/position-levels',
+    name: 'PositionLevels',
+    component: () => import('../views/position/PositionLevels.vue'),
+    meta: { title: '职位职级管理' }
+  },
+  {
     path: '/social-security',
     name: 'SocialSecurity',
     component: () => import('../views/social-security/Index.vue'),

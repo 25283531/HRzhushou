@@ -442,3 +442,172 @@ class SalaryRecord(BaseModel):
     def delete(cls, id):
         query = 'DELETE FROM salary_records WHERE id = ?'
         return execute_query(query, (id,))
+
+class SalaryItem(BaseModel):
+    """薪酬项模型"""
+    
+    @classmethod
+    def create(cls, data):
+        query = '''
+        INSERT INTO salary_items 
+            (name, code, type, description, calculation_formula, 
+             is_fixed, default_value, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        '''
+        
+        current_time = get_current_time()
+        
+        params = (
+            data.get('name'),
+            data.get('code'),
+            data.get('type'),
+            data.get('description'),
+            data.get('calculation_formula'),
+            data.get('is_fixed', True),
+            data.get('default_value', 0),
+            current_time,
+            current_time
+        )
+        
+        return execute_query(query, params)
+    
+    @classmethod
+    def get_by_id(cls, id):
+        query = 'SELECT * FROM salary_items WHERE id = ?'
+        return execute_query(query, (id,), one=True)
+    
+    @classmethod
+    def get_all(cls):
+        query = 'SELECT * FROM salary_items ORDER BY code'
+        return execute_query(query)
+    
+    @classmethod
+    def get_by_code(cls, code):
+        query = 'SELECT * FROM salary_items WHERE code = ?'
+        return execute_query(query, (code,), one=True)
+    
+    @classmethod
+    def update(cls, id, data):
+        query = '''
+        UPDATE salary_items SET 
+            name = ?,
+            code = ?,
+            type = ?,
+            description = ?,
+            calculation_formula = ?,
+            is_fixed = ?,
+            default_value = ?,
+            updated_at = ?
+        WHERE id = ?
+        '''
+        
+        current_record = cls.get_by_id(id)
+        if not current_record:
+            return None
+        
+        current_time = get_current_time()
+        
+        params = (
+            data.get('name', current_record['name']),
+            data.get('code', current_record['code']),
+            data.get('type', current_record['type']),
+            data.get('description', current_record['description']),
+            data.get('calculation_formula', current_record['calculation_formula']),
+            data.get('is_fixed', current_record['is_fixed']),
+            data.get('default_value', current_record['default_value']),
+            current_time,
+            id
+        )
+        
+        execute_query(query, params)
+        return cls.get_by_id(id)
+    
+    @classmethod
+    def delete(cls, id):
+        query = 'DELETE FROM salary_items WHERE id = ?'
+        return execute_query(query, (id,))
+
+class MatchingRule(BaseModel):
+    """匹配规则模型"""
+    
+    @classmethod
+    def create(cls, data):
+        query = '''
+        INSERT INTO matching_rules 
+            (name, description, conditions, salary_items, priority,
+             is_active, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        '''
+        
+        conditions = json.dumps(data.get('conditions', {}))
+        salary_items = json.dumps(data.get('salary_items', []))
+        current_time = get_current_time()
+        
+        params = (
+            data.get('name'),
+            data.get('description'),
+            conditions,
+            salary_items,
+            data.get('priority', 0),
+            data.get('is_active', True),
+            current_time,
+            current_time
+        )
+        
+        return execute_query(query, params)
+    
+    @classmethod
+    def get_by_id(cls, id):
+        query = 'SELECT * FROM matching_rules WHERE id = ?'
+        return execute_query(query, (id,), one=True)
+    
+    @classmethod
+    def get_all(cls):
+        query = 'SELECT * FROM matching_rules ORDER BY priority DESC'
+        return execute_query(query)
+    
+    @classmethod
+    def get_active_rules(cls):
+        query = 'SELECT * FROM matching_rules WHERE is_active = 1 ORDER BY priority DESC'
+        return execute_query(query)
+    
+    @classmethod
+    def update(cls, id, data):
+        query = '''
+        UPDATE matching_rules SET 
+            name = ?,
+            description = ?,
+            conditions = ?,
+            salary_items = ?,
+            priority = ?,
+            is_active = ?,
+            updated_at = ?
+        WHERE id = ?
+        '''
+        
+        current_record = cls.get_by_id(id)
+        if not current_record:
+            return None
+        
+        conditions = json.dumps(data.get('conditions', {}))
+        salary_items = json.dumps(data.get('salary_items', []))
+        current_time = get_current_time()
+        
+        params = (
+            data.get('name', current_record['name']),
+            data.get('description', current_record['description']),
+            conditions,
+            salary_items,
+            data.get('priority', current_record['priority']),
+            data.get('is_active', current_record['is_active']),
+            current_time,
+            id
+        )
+        
+        execute_query(query, params)
+        return cls.get_by_id(id)
+    
+    @classmethod
+    def delete(cls, id):
+        query = 'DELETE FROM matching_rules WHERE id = ?'
+        return execute_query(query, (id,))

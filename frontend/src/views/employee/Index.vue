@@ -391,7 +391,7 @@ const fetchEmployeeData = () => {
     }
     
     // 调用API获取员工数据
-    api.get('/employee/list', { params })
+    api.get('/employees/list', { params })
       .then(response => {
         if (response.success) {
           employeeData.value = response.data.items || []

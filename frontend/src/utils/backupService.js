@@ -24,29 +24,17 @@ let backupServiceInstance = null;
  * 数据备份服务类
  */
 class BackupService {
-  constructor() {
-    if (backupServiceInstance) {
-      return backupServiceInstance;
-    }
-    
+  constructor(maxBackupCount = 10) {
+    this.maxBackupCount = maxBackupCount;
     this.settings = { ...DEFAULT_BACKUP_SETTINGS };
-    this.backupTimer = null;
     this.isBackingUp = false;
+    this.backupTimer = null;
     this.lastBackupTime = null;
-    
-    // 从本地存储加载设置
     this.loadSettings();
-    
-    // 初始化自动备份
-    if (this.settings.autoBackup) {
-      this.startAutoBackup();
-    }
-    
-    backupServiceInstance = this;
   }
-  
+
   /**
-   * 从本地存储加载备份设置
+   * 加载设置
    */
   loadSettings() {
     try {
@@ -58,9 +46,9 @@ class BackupService {
       console.error('加载备份设置失败:', error);
     }
   }
-  
+
   /**
-   * 保存备份设置到本地存储
+   * 保存设置
    */
   saveSettings() {
     try {
@@ -69,12 +57,64 @@ class BackupService {
       console.error('保存备份设置失败:', error);
     }
   }
-  
-  /**
-   * 更新备份设置
-   * @param {Object} newSettings - 新的备份设置
-   */
+
+  async backupDatabase() {
+    // 使用 IndexedDB 存储备份数据
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const backupData = await this.getAllData();
+    await this.saveToIndexedDB(timestamp, backupData);
+    await this.cleanupOldBackups();
+  }
+
+  async getAllData() {
+    // 从 localStorage 或 API 获取所有需要备份的数据
+    const data = {};
+    if (this.settings.includeAttendance) {
+      data.attendance = await this.fetchDataToBackup('attendance');
+    }
+    if (this.settings.includeEmployees) {
+      data.employees = await this.fetchDataToBackup('employees');
+    }
+    if (this.settings.includeSalaryGroups) {
+      data.salaryGroups = await this.fetchDataToBackup('salaryGroups');
+    }
+    if (this.settings.includeSalaryRecords) {
+      data.salaryRecords = await this.fetchDataToBackup('salaryRecords');
+    }
+    return data;
+  }
+
+  async saveToIndexedDB(timestamp, data) {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open('HRBackups', 1);
+      
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        const db = request.result;
+        const tx = db.transaction(['backups'], 'readwrite');
+        const store = tx.objectStore('backups');
+        
+        store.add({
+          timestamp,
+          data,
+          createdAt: new Date()
+        });
+        
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      };
+      
+      request.onupgradeneeded = (event) => {
+        const db = event.target.result;
+        if (!db.objectStoreNames.contains('backups')) {
+          db.createObjectStore('backups', { keyPath: 'timestamp' });
+        }
+      };
+    });
+  }
+
   updateSettings(newSettings) {
+    this.maxBackupCount = newSettings.maxBackupCount || this.maxBackupCount;
     this.settings = { ...this.settings, ...newSettings };
     this.saveSettings();
     

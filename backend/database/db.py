@@ -16,13 +16,62 @@ def init_db():
     """初始化数据库，创建必要的表结构"""
     try:
         # 确保数据目录存在
-        os.makedirs(os.path.dirname(DATABASE_PATH), exist_ok=True)
+        data_dir = os.path.dirname(DATABASE_PATH)
+        if not os.path.exists(data_dir):
+            print(f"创建数据目录: {data_dir}")
+            os.makedirs(data_dir, exist_ok=True)
         
         # 尝试获取数据库连接
-        conn_id, conn = get_db_connection()
+        print(f"连接数据库: {DATABASE_PATH}")
+        conn = sqlite3.connect(DATABASE_PATH)
         cursor = conn.cursor()
         
         print("正在初始化数据库...")
+        
+        # 创建薪酬单项表
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS salary_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            code TEXT NOT NULL UNIQUE,
+            type TEXT NOT NULL,
+            description TEXT,
+            calculation_formula TEXT,
+            is_fixed BOOLEAN NOT NULL DEFAULT 1,
+            default_value REAL DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        ''')
+        
+        # 创建匹配规则表
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS matching_rules (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            description TEXT,
+            conditions TEXT NOT NULL,
+            priority INTEGER NOT NULL DEFAULT 0,
+            is_active BOOLEAN NOT NULL DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        ''')
+        
+        # 创建匹配规则和薪酬项的关联表
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS rule_salary_items (
+            rule_id INTEGER,
+            item_id INTEGER,
+            FOREIGN KEY (rule_id) REFERENCES matching_rules (id) ON DELETE CASCADE,
+            FOREIGN KEY (item_id) REFERENCES salary_items (id) ON DELETE CASCADE,
+            PRIMARY KEY (rule_id, item_id)
+        )
+        ''')
+        
+        conn.commit()
+        print("数据库初始化完成")
+        return conn
     except Exception as e:
         print(f"\n致命错误: 数据库初始化失败")
         print(f"异常详情: {str(e)}")
@@ -31,138 +80,6 @@ def init_db():
         print("应用程序将退出...\n")
         import sys
         sys.exit(1)
-    
-    # 创建员工表
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS employees (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        employee_id TEXT,
-        id_card TEXT,
-        department TEXT,
-        position TEXT,
-        entry_date TEXT,
-        leave_date TEXT,
-        custom_fields TEXT,
-        created_at TEXT,
-        updated_at TEXT
-    )
-    ''')
-    
-    # 创建职位变动记录表
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS position_changes (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        employee_id INTEGER,
-        old_position TEXT,
-        new_position TEXT,
-        old_salary REAL,
-        new_salary REAL,
-        effective_date TEXT,
-        created_at TEXT,
-        FOREIGN KEY (employee_id) REFERENCES employees (id)
-    )
-    ''')
-    
-    # 创建考勤数据表
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS attendance (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        employee_id INTEGER,
-        date TEXT,
-        status TEXT,
-        work_hours REAL,
-        late_minutes INTEGER,
-        early_leave_minutes INTEGER,
-        overtime_hours REAL,
-        absence_days REAL,
-        custom_data TEXT,
-        created_at TEXT,
-        FOREIGN KEY (employee_id) REFERENCES employees (id)
-    )
-    ''')
-    
-    # 创建薪资组表
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS salary_groups (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        description TEXT,
-        formula TEXT,
-        created_at TEXT,
-        updated_at TEXT
-    )
-    ''')
-    
-    # 创建薪酬单项表
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS salary_items (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        group_id INTEGER,
-        name TEXT NOT NULL,
-        type TEXT,
-        amount REAL,
-        level INTEGER,
-        created_at TEXT,
-        updated_at TEXT,
-        FOREIGN KEY (group_id) REFERENCES salary_groups (id)
-    )
-    ''')
-    
-    # 创建社保项表
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS insurance_items (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        personal_rate REAL,
-        company_rate REAL,
-        created_at TEXT,
-        updated_at TEXT
-    )
-    ''')
-    
-    # 创建社保组表
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS insurance_groups (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        description TEXT,
-        base_amount REAL,
-        items TEXT,  -- JSON格式存储关联的社保项ID
-        created_at TEXT,
-        updated_at TEXT
-    )
-    ''')
-    
-    # 创建薪资记录表
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS salary_records (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        employee_id INTEGER,
-        month TEXT,
-        base_salary REAL,
-        actual_salary REAL,
-        deductions REAL,
-        insurance REAL,
-        tax REAL,
-        details TEXT,  -- JSON格式存储详细计算数据
-        created_at TEXT,
-        FOREIGN KEY (employee_id) REFERENCES employees (id)
-    )
-    ''')
-    
-    # 创建数据备份表
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS backups (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        filename TEXT NOT NULL,
-        description TEXT,
-        created_at TEXT
-    )
-    ''')
-    
-    conn.commit()
-    conn.close()
 
 # 数据库连接池
 class ConnectionPool:
@@ -365,15 +282,14 @@ def get_connection_pool():
 def get_db_connection():
     """获取数据库连接"""
     try:
-        pool = get_connection_pool()
-        conn_id, conn = pool.get_connection()
-        return conn_id, conn
+        conn = sqlite3.connect(DATABASE_PATH, timeout=20)
+        conn.row_factory = dict_factory
+        return None, conn
     except sqlite3.Error as e:
         logger.error(f"数据库连接错误: {str(e)}")
         raise e
 
 def get_connection_from_pool():
-    """获取数据库连接（兼容旧调用）"""
     return get_db_connection()
 
 def return_connection_to_pool(conn_id, conn):
