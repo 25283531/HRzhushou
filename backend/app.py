@@ -161,7 +161,7 @@ if __name__ == '__main__':
     try:
         print("正在启动HR助手后端服务...")
         # 使用线程运行Flask应用
-        server_thread = threading.Thread(target=lambda: app.run(debug=True, port=5566, use_reloader=False))
+        server_thread = threading.Thread(target=lambda: app.run(debug=True, port=3000, use_reloader=False))
         server_thread.daemon = True
         server_thread.start()
         

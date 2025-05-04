@@ -6,6 +6,12 @@
 
 ## 最新改进
 
+### 端口配置优化
+
+- **固定前端端口**：前端服务器现在固定使用5567端口，避免了多次启动时端口号递增的问题
+- **自动结束进程**：当重新启动前端服务时，系统会自动结束当前占用端口的进程，无需手动关闭
+- **配置说明**：在vite.config.js中已设置固定端口，package.json中的dev脚本添加了--force参数以强制使用指定端口
+
 根据测试报告中发现的问题，我们进行了以下改进：
 
 ### 1. 考勤数据导入优化
@@ -162,7 +168,10 @@ HRzhushou/
 1. 克隆仓库：`git clone [仓库地址]`
 2. 安装依赖：`npm install` 和 `pip install -r backend/requirements.txt`
 3. 启动前端开发服务器：`npm run dev`
-4. 启动后端服务：`python backend/app.py`
+   - 前端服务器将在5567端口启动
+   - 如果端口已被占用，系统会自动结束当前进程并重新启动
+   - 这是通过package.json中的`--force`参数实现的
+4. 启动后端服务：`python backend/app.py` 或 `node backend/src/index.js`
 
 ### 生产环境
 1. 构建前端：`npm run build`

@@ -27,11 +27,13 @@ const Employee = sequelize.define('Employee', {
   },
   department_level2: {
     type: DataTypes.STRING,
-    allowNull: true
+    allowNull: true,
+    defaultValue: ''
   },
   position: {
     type: DataTypes.STRING,
-    allowNull: false
+    allowNull: true,
+    defaultValue: ''
   },
   entry_date: {
     type: DataTypes.DATEONLY,
@@ -46,24 +48,29 @@ const Employee = sequelize.define('Employee', {
     defaultValue: '在职'
   },
   salary_group: {
-    type: DataTypes.STRING,
-    allowNull: true
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    defaultValue: null
   },
   social_security_group: {
-    type: DataTypes.STRING,
-    allowNull: true
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    defaultValue: null
   },
   bank_account: {
     type: DataTypes.STRING,
-    allowNull: true
+    allowNull: true,
+    defaultValue: ''
   },
   phone: {
     type: DataTypes.STRING,
-    allowNull: true
+    allowNull: true,
+    defaultValue: ''
   },
   remarks: {
     type: DataTypes.TEXT,
-    allowNull: true
+    allowNull: true,
+    defaultValue: ''
   }
 }, {
   tableName: 'employees',

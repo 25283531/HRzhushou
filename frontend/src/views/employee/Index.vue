@@ -201,7 +201,7 @@
       <el-upload
         class="upload-demo"
         drag
-        action="/api/employee/import"
+        action="/employee/import"
         :auto-upload="false"
         :on-change="handleFileChange"
         :limit="1"
@@ -304,15 +304,15 @@ const departmentLevel2Options = ref([
 
 // 薪资组选项
 const salaryGroupOptions = ref([
-  { value: '1', label: '普通员工薪资组' },
-  { value: '2', label: '管理层薪资组' },
-  { value: '3', label: '技术专家薪资组' }
+  { value: 1, label: '普通员工薪资组' },
+  { value: 2, label: '管理层薪资组' },
+  { value: 3, label: '技术专家薪资组' }
 ])
 
 // 社保组选项
 const socialSecurityGroupOptions = ref([
-  { value: '1', label: '标准社保组' },
-  { value: '2', label: '高级社保组' }
+  { value: 1, label: '标准社保组' },
+  { value: 2, label: '高级社保组' }
 ])
 
 // 员工对话框
@@ -387,11 +387,12 @@ const fetchEmployeeData = () => {
       employee_number: searchForm.employeeNumber,
       department: searchForm.department,
       page: currentPage.value,
-      page_size: pageSize.value
+      page_size: pageSize.value,
+      _t: new Date().getTime() // 添加时间戳避免缓存
     }
     
     // 调用API获取员工数据
-    api.get('/employees/list', { params })
+    api.get('/employee/list', { params })
       .then(response => {
         if (response.success) {
           employeeData.value = response.data.items || []
@@ -451,12 +452,25 @@ const submitEmployeeForm = () => {
     if (valid) {
       loading.value = true
       
+      // 格式化表单数据
+      const formattedData = {
+        ...employeeForm,
+        entry_date: employeeForm.entry_date ? new Date(employeeForm.entry_date).toISOString().split('T')[0] : null,
+        salary_group: employeeForm.salary_group ? Number(employeeForm.salary_group) : null,
+        social_security_group: employeeForm.social_security_group ? Number(employeeForm.social_security_group) : null,
+        department_level2: employeeForm.department_level2 || '',
+        position: employeeForm.position || '',
+        bank_account: employeeForm.bank_account || '',
+        phone: employeeForm.phone || '',
+        remarks: employeeForm.remarks || ''
+      }
+      
       // 导入API模块
       import('../../api').then(({ default: api }) => {
         // 根据是编辑还是新增选择不同的API
         const apiCall = isEdit.value 
-          ? api.put(`/employee/update/${employeeForm.id}`, employeeForm)
-          : api.post('/employee/add', employeeForm)
+          ? api.put(`/employee/${formattedData.id}`, formattedData)
+          : api.post('/employee', formattedData)
         
         apiCall.then(response => {
           if (response.success) {
@@ -464,12 +478,12 @@ const submitEmployeeForm = () => {
             employeeDialogVisible.value = false
             fetchEmployeeData() // 刷新数据
           } else {
-            ElMessage.error(response.error || '操作失败')
+            ElMessage.error(response.error?.message || '操作失败')
           }
           loading.value = false
         }).catch(error => {
           console.error('保存员工信息失败:', error)
-          ElMessage.error('保存员工信息失败')
+          ElMessage.error(error.error?.message || '保存员工信息失败')
           loading.value = false
         })
       })
@@ -491,12 +505,25 @@ const handleDelete = (row) => {
     }
   )
     .then(() => {
-      // 这里应该是实际的删除逻辑
-      ElMessage({
-        type: 'success',
-        message: '删除成功',
+      // 导入API模块并调用删除接口
+      import('../../api').then(({ default: api }) => {
+        api.delete(`/employee/${row.id}`)
+          .then(response => {
+            if (response.success) {
+              ElMessage({
+                type: 'success',
+                message: '删除成功',
+              })
+              fetchEmployeeData() // 刷新数据
+            } else {
+              ElMessage.error(response.error || '删除失败')
+            }
+          })
+          .catch(error => {
+            console.error('删除员工失败:', error)
+            ElMessage.error('删除员工失败')
+          })
       })
-      fetchEmployeeData() // 刷新数据
     })
     .catch(() => {
       // 取消删除

@@ -1,31 +1,39 @@
 const winston = require('winston');
 const path = require('path');
 
+// 创建日志目录
+const logDir = path.join(__dirname, '../../logs');
+
+// 创建日志格式
+const logFormat = winston.format.combine(
+  winston.format.timestamp(),
+  winston.format.json(),
+  winston.format.prettyPrint()
+);
+
+// 创建日志记录器
 const logger = winston.createLogger({
   level: 'info',
-  format: winston.format.combine(
-    winston.format.timestamp(),
-    winston.format.json()
-  ),
+  format: logFormat,
   transports: [
-    new winston.transports.File({ 
-      filename: path.join(__dirname, '../../logs/error.log'), 
-      level: 'error' 
+    // 控制台输出
+    new winston.transports.Console({
+      format: winston.format.combine(
+        winston.format.colorize(),
+        winston.format.simple()
+      )
     }),
-    new winston.transports.File({ 
-      filename: path.join(__dirname, '../../logs/combined.log') 
+    // 文件输出
+    new winston.transports.File({
+      filename: path.join(logDir, 'error.log'),
+      level: 'error'
+    }),
+    new winston.transports.File({
+      filename: path.join(logDir, 'combined.log')
     })
   ]
 });
 
-// 如果不是生产环境，同时输出到控制台
-if (process.env.NODE_ENV !== 'production') {
-  logger.add(new winston.transports.Console({
-    format: winston.format.combine(
-      winston.format.colorize(),
-      winston.format.simple()
-    )
-  }));
-}
-
-module.exports = { logger }; 
+module.exports = {
+  logger
+}; 

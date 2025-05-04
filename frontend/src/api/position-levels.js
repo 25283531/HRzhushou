@@ -3,14 +3,14 @@ import request from '@/utils/request'
 // 职级类型API
 export function getLevelTypes() {
   return request({
-    url: '/api/position-levels/types',
+    url: '/position-levels/types',
     method: 'get'
   })
 }
 
 export function createLevelType(data) {
   return request({
-    url: '/api/position-levels/types',
+    url: '/position-levels/types',
     method: 'post',
     data
   })
@@ -18,7 +18,7 @@ export function createLevelType(data) {
 
 export function updateLevelType(id, data) {
   return request({
-    url: `/api/position-levels/types/${id}`,
+    url: `/position-levels/types/${id}`,
     method: 'put',
     data
   })
@@ -26,7 +26,7 @@ export function updateLevelType(id, data) {
 
 export function deleteLevelType(id) {
   return request({
-    url: `/api/position-levels/types/${id}`,
+    url: `/position-levels/types/${id}`,
     method: 'delete'
   })
 }
@@ -34,7 +34,7 @@ export function deleteLevelType(id) {
 // 职级API
 export function getPositionLevels(typeId) {
   return request({
-    url: '/api/position-levels/levels',
+    url: '/position-levels/levels',
     method: 'get',
     params: typeId ? { type_id: typeId } : {}
   })
@@ -42,7 +42,7 @@ export function getPositionLevels(typeId) {
 
 export function createPositionLevel(data) {
   return request({
-    url: '/api/position-levels/levels',
+    url: '/position-levels/levels',
     method: 'post',
     data
   })
@@ -50,7 +50,7 @@ export function createPositionLevel(data) {
 
 export function updatePositionLevel(id, data) {
   return request({
-    url: `/api/position-levels/levels/${id}`,
+    url: `//position-levels/levels/${id}`,
     method: 'put',
     data
   })
@@ -58,7 +58,7 @@ export function updatePositionLevel(id, data) {
 
 export function deletePositionLevel(id) {
   return request({
-    url: `/api/position-levels/levels/${id}`,
+    url: `/position-levels/levels/${id}`,
     method: 'delete'
   })
 } 

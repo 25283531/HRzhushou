@@ -3,18 +3,28 @@ import { ElMessage } from 'element-plus'
 
 // 创建axios实例
 const service = axios.create({
-  baseURL: 'http://localhost:5566', // 后端API地址
-  timeout: 5000 // 请求超时时间
+  baseURL: import.meta.env.VITE_API_BASE_URL || '', // 使用环境变量，避免硬编码API前缀
+  timeout: 5000,
+  headers: {
+    'Content-Type': 'application/json',
+    'Cache-Control': 'no-cache',
+    'Pragma': 'no-cache'
+  }
 })
 
 // 请求拦截器
 service.interceptors.request.use(
   config => {
-    // 在发送请求之前做些什么
+    // 添加时间戳
+    if (config.method === 'get') {
+      config.params = {
+        ...config.params,
+        _t: new Date().getTime()
+      }
+    }
     return config
   },
   error => {
-    // 对请求错误做些什么
     console.log(error)
     return Promise.reject(error)
   }
@@ -24,17 +34,8 @@ service.interceptors.request.use(
 service.interceptors.response.use(
   response => {
     const res = response.data
-    // 如果返回的状态码不是0，则判断为错误
-    if (res.code !== 0) {
-      ElMessage({
-        message: res.message || '请求失败',
-        type: 'error',
-        duration: 5 * 1000
-      })
-      return Promise.reject(new Error(res.message || '请求失败'))
-    } else {
-      return res
-    }
+    // 直接返回数据，让业务层处理具体的状态判断
+    return res
   },
   error => {
     console.log('err' + error)
@@ -47,4 +48,4 @@ service.interceptors.response.use(
   }
 )
 
-export default service 
+export default service

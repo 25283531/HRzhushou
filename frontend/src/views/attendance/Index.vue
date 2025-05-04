@@ -98,7 +98,7 @@
           <el-upload
             class="upload-demo"
             drag
-            action="/api/attendance/import"
+            action="/attendance/import"
             :auto-upload="false"
             :on-change="handleFileChange"
             :limit="1"

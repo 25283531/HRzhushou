@@ -4,7 +4,9 @@
   "description": "薪酬管理软件 - 单机部署的HR助手",
   "main": "electron/main.js",
   "scripts": {
-    "dev": "vite",
+    "check-api": "node scripts/check-api-paths.js",
+    "prebuild": "npm run check-api",
+    "dev": "vite --port 5567 --force",
     "build": "vite build",
     "preview": "vite preview",
     "electron:dev": "electron .",

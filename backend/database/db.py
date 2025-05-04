@@ -1,5 +1,6 @@
 import os
 import sqlite3
+import uuid
 import json
 import threading
 import logging
@@ -282,11 +283,14 @@ def get_connection_pool():
 def get_db_connection():
     """获取数据库连接"""
     try:
-        conn = sqlite3.connect(DATABASE_PATH, timeout=20)
-        conn.row_factory = dict_factory
-        return None, conn
-    except sqlite3.Error as e:
-        logger.error(f"数据库连接错误: {str(e)}")
+        pool = get_connection_pool()
+        conn_id, conn = pool.get_connection()
+        # 确保返回的连接具有正确的 row_factory
+        if conn:
+            conn.row_factory = dict_factory
+        return conn_id, conn
+    except Exception as e:
+        logger.error(f"从连接池获取数据库连接失败: {str(e)}")
         raise e
 
 def get_connection_from_pool():

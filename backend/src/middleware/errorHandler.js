@@ -1,7 +1,7 @@
 const { logger } = require('../utils/logger');
 
 const errorHandler = (err, req, res, next) => {
-  logger.error('错误处理中间件捕获到错误:', {
+  logger.error('ECONNREFUSED 错误:', {
     error: err.message,
     stack: err.stack,
     path: req.path,
@@ -20,4 +20,4 @@ const errorHandler = (err, req, res, next) => {
   });
 };
 
-module.exports = { errorHandler }; 
+module.exports = { errorHandler };
