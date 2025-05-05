@@ -6,6 +6,7 @@ import signal
 import threading
 from flask import Flask
 from flask_cors import CORS
+from backend.database.models import Employee
 
 # 全局错误标志，用于标记是否发生了致命错误
 fatal_error_occurred = False
@@ -48,6 +49,7 @@ def setup():
     try:
         init_db()
         create_tables()
+        Employee.create_table()
     except Exception as e:
         handle_fatal_error("数据库初始化失败", e)
 

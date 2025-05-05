@@ -23,22 +23,7 @@
             value-format="YYYY-MM" />
         </el-form-item>
         <el-form-item label="员工">
-          <el-select v-model="filterForm.employeeId" placeholder="选择员工" clearable>
-            <el-option
-              v-for="item in employees"
-              :key="item.id"
-              :label="item.name"
-              :value="item.id" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-select v-model="filterForm.status" placeholder="选择状态" clearable>
-            <el-option label="正常" value="正常" />
-            <el-option label="迟到" value="迟到" />
-            <el-option label="早退" value="早退" />
-            <el-option label="缺卡" value="缺卡" />
-            <el-option label="旷工" value="旷工" />
-          </el-select>
+          <el-input v-model="filterForm.employeeName" placeholder="请输入员工姓名" clearable />
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="handleFilter">查询</el-button>
@@ -92,38 +77,60 @@
     <el-dialog
       v-model="importDialogVisible"
       title="导入考勤数据"
-      width="600px">
+      width="700px">
       <el-form :model="importForm" label-width="120px">
         <el-form-item label="考勤数据文件">
           <el-upload
             class="upload-demo"
             drag
-            action="/attendance/import"
             :auto-upload="false"
             :on-change="handleFileChange"
             :limit="1"
-            accept=".xlsx,.xls,.csv">
+            accept=".xlsx,.xls">
             <el-icon class="el-icon--upload"><upload-filled /></el-icon>
             <div class="el-upload__text">
               将文件拖到此处，或<em>点击上传</em>
             </div>
             <template #tip>
               <div class="el-upload__tip">
-                支持 Excel 或 CSV 格式文件，请确保文件格式正确
+                仅支持Excel格式文件（.xlsx/.xls）
               </div>
             </template>
           </el-upload>
+          <el-button type="success" style="margin-left: 20px" @click="downloadTemplate">下载模板</el-button>
         </el-form-item>
-        
-        <el-form-item label="数据格式设置">
-          <el-button type="primary" @click="showFieldMappingDialog">设置字段映射</el-button>
-          <el-button @click="showTemplateDialog">查看模板</el-button>
+        <el-form-item v-if="sheetNames.length > 1" label="选择工作表">
+          <el-select v-model="selectedSheet" placeholder="请选择要导入的工作表" style="width: 250px">
+            <el-option v-for="name in sheetNames" :key="name" :label="name" :value="name" />
+          </el-select>
+        </el-form-item>
+        <el-form-item v-if="sheetPreview.length" label="表格预览">
+          <el-table :data="sheetPreview" border height="200" style="width: 100%">
+            <el-table-column v-for="col in previewColumns" :key="col" :prop="col" :label="col" />
+          </el-table>
+        </el-form-item>
+        <el-form-item v-if="mappingStep && importForm.file && selectedSheet && Array.isArray(fieldMappings) && fieldMappings.length > 0" label="字段映射">
+          <el-table :data="fieldMappings" border style="width: 100%">
+            <el-table-column prop="dbField" label="计算字段" width="180">
+              <template #default="{ row }">
+                {{ dbFields.find(f => f.dbField === row.dbField)?.label || row.dbField }}
+              </template>
+            </el-table-column>
+            <el-table-column label="Excel列名">
+              <template #default="{ row: scope }">
+                <el-select v-model="scope.row.excelField" placeholder="请选择Excel列名" style="width: 200px">
+                  <el-option v-for="col in previewColumns" :key="col" :label="col" :value="col" />
+                </el-select>
+              </template>
+            </el-table-column>
+          </el-table>
         </el-form-item>
       </el-form>
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="importDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="submitImport">导入</el-button>
+          <el-button v-if="!mappingStep && sheetPreview.length" type="primary" @click="confirmMapping">下一步</el-button>
+          <el-button v-if="mappingStep" type="primary" @click="submitImport">导入</el-button>
         </span>
       </template>
     </el-dialog>
@@ -189,59 +196,42 @@
       </template>
     </el-dialog>
     
-    <!-- 考勤规则设置对话框 -->
-    <el-dialog
-      v-model="attendanceRuleDialogVisible"
-      title="考勤规则设置"
-      width="600px">
-      <el-form :model="attendanceRules" label-width="150px">
-        <el-form-item label="迟到扣款金额">
-          <el-input-number v-model="attendanceRules.lateDeduction" :min="0" :precision="2" :step="10" />
-          <span class="form-tip">元/次</span>
-        </el-form-item>
-        <el-form-item label="迟到免扣次数">
-          <el-input-number v-model="attendanceRules.lateFreeCount" :min="0" :precision="0" :step="1" />
-          <span class="form-tip">次/月</span>
-        </el-form-item>
-        <el-form-item label="严重迟到扣款金额">
-          <el-input-number v-model="attendanceRules.seriousLateDeduction" :min="0" :precision="2" :step="10" />
-          <span class="form-tip">元/次</span>
-        </el-form-item>
-        <el-form-item label="严重迟到时长">
-          <el-input-number v-model="attendanceRules.seriousLateMinutes" :min="0" :precision="0" :step="5" />
-          <span class="form-tip">分钟</span>
-        </el-form-item>
-        <el-form-item label="早退扣款金额">
-          <el-input-number v-model="attendanceRules.earlyLeaveDeduction" :min="0" :precision="2" :step="10" />
-          <span class="form-tip">元/次</span>
-        </el-form-item>
-        <el-form-item label="缺卡扣款金额">
-          <el-input-number v-model="attendanceRules.missedPunchDeduction" :min="0" :precision="2" :step="10" />
-          <span class="form-tip">元/次</span>
-        </el-form-item>
-        <el-form-item label="旷工扣款金额">
-          <el-input-number v-model="attendanceRules.absentDeduction" :min="0" :precision="2" :step="50" />
-          <span class="form-tip">元/天</span>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="attendanceRuleDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="saveAttendanceRules">保存规则</el-button>
-        </span>
-      </template>
-    </el-dialog>
+
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, watch } from 'vue'
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { Upload, UploadFilled } from '@element-plus/icons-vue'
 import { parseDate, formatDate } from '../../utils/dateParser'
 import { validateAttendanceRecords, validateExcelFile } from '../../utils/dataValidator'
 import { processAttendanceData } from '../../utils/workerService'
 import backupService from '../../utils/backupService'
+import * as XLSX from 'xlsx'
+
+
+// Excel相关变量，避免未定义错误
+const selectedSheet = ref('')
+const sheetNames = ref([])
+const sheetPreview = ref([])
+const previewColumns = ref([])
+const mappingStep = ref(false)
+const fieldMappings = ref([])
+
+// 下载模板方法
+const downloadTemplate = () => {
+  // 构造包含所有字段的Excel模板数据
+  const ws_data = [
+    ['姓名', '工号', '身份证号', '考勤月份', '应出勤天数', '实际出勤天数', '迟到次数', '严重迟到次数', '早退次数', '严重早退次数', '旷工次数', '病假天数', '事假天数', '工伤休假天数', '休年假天数', '加班时长'],
+    ['张三', '1001', '123456789012345678', '2024-05', '22', '22', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'],
+    ['李四', '1002', '987654321098765432', '2024-05', '22', '21', '1', '0', '0', '0', '0', '0', '0', '0', '0', '2']
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(ws_data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '考勤模板');
+  XLSX.writeFile(wb, '考勤导入模板.xlsx');
+}
 
 // 数据加载状态
 const loading = ref(false)
@@ -276,15 +266,17 @@ const customFields = ref([])
 
 // 考勤规则对话框
 const attendanceRuleDialogVisible = ref(false)
-const attendanceRules = reactive({
-  lateDeduction: 10,
-  lateFreeCount: 2,
-  seriousLateDeduction: 30,
-  seriousLateMinutes: 30,
-  earlyLeaveDeduction: 10,
-  missedPunchDeduction: 20,
-  absentDeduction: 100
-})
+const attendanceRules = ref([
+  {
+    lateDeduction: 0,
+    lateFreeCount: 0,
+    seriousLateDeduction: 0,
+    seriousLateMinutes: 0,
+    earlyLeaveDeduction: 0,
+    missedPunchDeduction: 0,
+    absentDeduction: 0
+  }
+])
 
 // 员工数据
 const employees = ref([])
@@ -292,8 +284,7 @@ const employees = ref([])
 // 筛选表单
 const filterForm = reactive({
   month: new Date().toISOString().slice(0, 7), // 默认当前月份
-  employeeId: '',
-  status: ''
+  employeeName: ''
 })
 
 // 生命周期钩子
@@ -366,8 +357,31 @@ const fetchAttendanceData = () => {
 
 // 获取员工数据
 const fetchEmployees = () => {
-  // TODO: 实现实际的员工数据获取逻辑
-  employees.value = []
+  loading.value = true;
+  import('../../api').then(({ default: api }) => {
+    api.get('/employee/list')
+      .then(response => {
+        if (response && response.success && response.data && Array.isArray(response.data.items)) {
+          employees.value = response.data.items || [];
+        } else {
+          console.error('员工数据接口返回异常:', response);
+          ElMessage.error(response?.error || '获取员工数据失败');
+          employees.value = [];
+        }
+      })
+      .catch(error => {
+        console.error('获取员工数据失败:', error);
+        ElMessage.error('获取员工数据失败: ' + (error.message || '未知错误'));
+        employees.value = [];
+      })
+      .finally(() => {
+        loading.value = false;
+      });
+  }).catch(error => {
+    console.error('导入API模块失败:', error);
+    ElMessage.error('系统错误: 无法加载API模块');
+    loading.value = false;
+  });
 }
 
 // 显示导入对话框
@@ -375,94 +389,112 @@ const showImportDialog = () => {
   importDialogVisible.value = true
 }
 
-// 处理文件变更
-const handleFileChange = (file) => {
-  importForm.file = file.raw
-  
-  // 验证文件格式
-  const validationResult = validateExcelFile(file.raw);
-  if (!validationResult.valid) {
-    ElMessage.error(validationResult.errors.join('\n'));
+// 下一步：进入字段映射步骤
+const confirmMapping = () => {
+  // 检查 Excel 表头和数据库字段
+  if (!Array.isArray(dbFields.value) || !Array.isArray(previewColumns.value) || previewColumns.value.length === 0) {
+    ElMessage.error('请先上传并选择包含表头的Excel文件');
+    fieldMappings.value = [];
     return;
   }
-  
-  // 显示加载指示器
-  const loadingInstance = ElLoading.service({
-    lock: true,
-    text: '正在解析文件...',
-    background: 'rgba(0, 0, 0, 0.7)'
+  // 生成映射数组，确保每项都包含 excelField 字段
+  fieldMappings.value = dbFields.value.map(f => {
+    return {
+      dbField: f.dbField,
+      excelField: previewColumns.value.includes(f.label) ? f.label : (previewColumns.value[0] || '')
+    };
   });
-  
-  // 使用FileReader读取文件内容
-  const reader = new FileReader();
-  
+  mappingStep.value = true;
+};
+const handleFileChange = (file) => {
+  importForm.file = file.raw
+  const reader = new FileReader()
   reader.onload = (e) => {
     try {
-      // 这里应该使用适当的库解析Excel文件
-      // 示例代码，实际应该使用xlsx或其他库解析文件内容
-      // 解析文件头，获取实际的列名
-      excelColumns.value = ['员工姓名', '工号', '日期', '上班打卡', '下班打卡', '状态', '备注'];
-      
-      // 关闭加载指示器
-      loadingInstance.close();
-      
-      ElMessage.success('文件解析成功');
-    } catch (error) {
-      console.error('解析文件失败:', error);
-      ElMessage.error(`解析文件失败: ${error.message}`);
-      loadingInstance.close();
+      const data = new Uint8Array(e.target.result)
+      const workbook = XLSX.read(data, { type: 'array' })
+      sheetNames.value = workbook.SheetNames
+      if (sheetNames.value.length === 1) {
+        selectedSheet.value = sheetNames.value[0]
+        showSheetPreview(workbook, selectedSheet.value)
+      } else {
+        selectedSheet.value = ''
+        sheetPreview.value = []
+        previewColumns.value = []
+      }
+      mappingStep.value = false
+      fieldMappings.value = []
+      importForm.workbook = workbook
+    } catch (err) {
+      ElMessage.error('解析Excel文件失败: ' + err.message)
     }
-  };
-  
-  reader.onerror = () => {
-    ElMessage.error('读取文件失败');
-    loadingInstance.close();
-  };
-  
-  // 读取文件
-  reader.readAsArrayBuffer(file.raw);
-}
-
-// 显示字段映射对话框
-const showFieldMappingDialog = () => {
-  fieldMappingDialogVisible.value = true
-}
-
-// 显示模板对话框
-const showTemplateDialog = () => {
-  // 显示导入模板的说明或下载模板
-  ElMessage({
-    message: '模板下载功能正在开发中',
-    type: 'info'
-  })
-}
-
-// 添加自定义字段
-const addCustomField = () => {
-  customFields.value.push({
-    name: '',
-    column: ''
-  })
-}
-
-// 移除自定义字段
-const removeCustomField = (index) => {
-  customFields.value.splice(index, 1)
-}
-
-// 保存字段映射
-const saveFieldMapping = () => {
-  // 验证必填字段
-  if (!fieldMapping.name || !fieldMapping.date) {
-    ElMessage.error('员工姓名和日期字段为必填项')
-    return
   }
-  
-  ElMessage.success('字段映射保存成功')
-  fieldMappingDialogVisible.value = false
+  reader.readAsArrayBuffer(file.raw)
 }
 
-// 提交导入
+watch(selectedSheet, (val) => {
+  if (val && importForm.workbook) {
+    showSheetPreview(importForm.workbook, val)
+  }
+})
+
+function showSheetPreview(workbook, sheetName) {
+  const ws = workbook.Sheets[sheetName]
+  const json = XLSX.utils.sheet_to_json(ws, { header: 1 })
+  if (json.length > 1) {
+    previewColumns.value = json[0]
+    sheetPreview.value = json.slice(1, 6).map(row => {
+      const obj = {}
+      previewColumns.value.forEach((col, idx) => {
+        obj[col] = row[idx] || ''
+      })
+      return obj
+    })
+  } else {
+    previewColumns.value = []
+    sheetPreview.value = []
+  }
+}
+
+// 动态获取考勤规则字段
+const defaultRules = [
+  { id: 1, name: '迟到', chargeType: 'byTimes', freeTimes: 3, amountPerTime: 20, formula: '' },
+  { id: 2, name: '早退', chargeType: 'byTimes', freeTimes: 2, amountPerTime: 15, formula: '' },
+  { id: 3, name: '旷工', chargeType: 'byDays', freeTimes: 0, amountPerTime: 0, formula: '(基本工资+绩效工资)/应出勤天数*旷工天数' },
+  { id: 4, name: '病假', chargeType: 'byDays', freeTimes: 0, amountPerTime: 0, formula: '(基本工资+绩效工资)/应出勤天数*病假天数*0.5' }
+]
+const getAttendanceRules = () => {
+  try {
+    const rules = JSON.parse(localStorage.getItem('attendanceRules'))
+    return Array.isArray(rules) && rules.length > 0 ? rules : defaultRules
+  } catch {
+    return defaultRules
+  }
+}
+const dbFields = ref([
+  { dbField: 'name', label: '员工姓名' },
+  { dbField: 'number', label: '工号' },
+  { dbField: 'idCard', label: '身份证号' },
+  { dbField: 'month', label: '考勤月份' },
+  { dbField: 'shouldWorkDays', label: '应出勤天数' },
+  { dbField: 'actualWorkDays', label: '实际出勤天数' },
+  ...getAttendanceRules().map(rule => ({ dbField: rule.name, label: rule.name }))
+])
+const resetImportDialog = () => {
+  importForm.file = null;
+  selectedSheet.value = '';
+  sheetNames.value = [];
+  sheetPreview.value = [];
+  previewColumns.value = [];
+  fieldMappings.value = [];
+  fieldMapping.name = '';
+  fieldMapping.number = '';
+  fieldMapping.date = '';
+  fieldMapping.checkIn = '';
+  fieldMapping.checkOut = '';
+  customFields.value = [];
+  mappingStep.value = false;
+};
 const submitImport = () => {
   if (!importForm.file) {
     ElMessage.error('请选择要导入的文件')
@@ -540,7 +572,7 @@ const submitImport = () => {
 // 保存考勤规则
 const saveAttendanceRules = () => {
   import('../../api').then(({ default: api }) => {
-    api.post('/attendance/rules', attendanceRules)
+    api.post('/attendance/rules', { rules: attendanceRules.value })
       .then(response => {
         if (response && response.success) {
           ElMessage.success('考勤规则保存成功');
@@ -619,25 +651,48 @@ const handleSizeChange = (val) => {
 
 // 获取状态标签类型
 const getStatusTagType = (status) => {
-  const statusMap = {
-    '正常': 'success',
-    '迟到': 'warning',
-    '早退': 'warning',
-    '缺卡': 'danger',
-    '旷工': 'danger'
-  }
+  // 动态生成状态与标签类型映射
+  const rules = getAttendanceRules()
+  const statusMap = { '正常': 'success' }
+  rules.forEach(rule => {
+    if (rule.name.includes('迟到') || rule.name.includes('早退')) {
+      statusMap[rule.name] = 'warning'
+    } else if (rule.name.includes('旷工') || rule.name.includes('缺卡')) {
+      statusMap[rule.name] = 'danger'
+    } else {
+      statusMap[rule.name] = 'info'
+    }
+  })
   return statusMap[status] || 'info'
 }
 
 const handleFilter = () => {
-  fetchAttendanceData()
+  const name = filterForm.employeeName && filterForm.employeeName.trim();
+  if (name) {
+    // 判断员工花名册中是否有该员工
+    const foundEmployee = employees.value.find(emp => emp.name === name);
+    if (!foundEmployee) {
+      ElMessage.warning('未查询到该员工，请重新输入');
+      return;
+    }
+    // 判断考勤数据中是否有该员工
+    const foundAttendance = attendanceData.value.find(item => item.employee_name === name);
+    if (!foundAttendance) {
+      ElMessage.info('花名册中有该员工，但是所选月份没有该员工的考勤数据');
+      // 依然可以继续查询或刷新数据
+    }
+  }
+  fetchAttendanceData();
 }
 const resetFilter = () => {
   filterForm.month = new Date().toISOString().slice(0, 7)
-  filterForm.employeeId = ''
-  filterForm.status = ''
+  filterForm.employeeName = ''
   fetchAttendanceData()
 }
+
+
+
+
 </script>
 
 <style scoped>

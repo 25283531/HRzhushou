@@ -70,6 +70,20 @@ def init_db():
         )
         ''')
         
+        # 创建考勤表
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS attendance (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            date DATE NOT NULL,
+            check_in_time TIME,
+            check_out_time TIME,
+            status TEXT DEFAULT 'normal',
+            remark TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        ''')
         conn.commit()
         print("数据库初始化完成")
         return conn

@@ -61,6 +61,10 @@ const routes = [
     name: 'DataAnalysis',
     component: () => import('../views/data-analysis/Index.vue'),
     meta: { title: '数据分析' }
+  },
+  {
+    path: '/attendance-rule-setting',
+    component: () => import('../views/attendance/AttendanceRuleSetting.vue')
   }
 ]
 

@@ -23,22 +23,12 @@
           </el-form-item>
           <el-form-item label="薪资组">
             <el-select v-model="filterForm.salaryGroupId" placeholder="选择薪资组">
-              <el-option
-                v-for="item in salaryGroups"
-                :key="item.id"
-                :label="item.name"
-                :value="item.id"
-              />
+              <el-option v-for="item in salaryGroups" :key="item.id" :label="item.name" :value="item.id" v-if="item && item.id !== undefined && item.name !== undefined" />
             </el-select>
           </el-form-item>
           <el-form-item label="员工">
             <el-select v-model="filterForm.employeeId" placeholder="选择员工" clearable>
-              <el-option
-                v-for="item in employees"
-                :key="item.id"
-                :label="item.name"
-                :value="item.id"
-              />
+              <el-option v-for="item in employees" :key="item.id" :label="item.name" :value="item.id" v-if="item && item.id !== undefined && item.name !== undefined" />
             </el-select>
           </el-form-item>
           <el-form-item>
@@ -194,7 +184,10 @@ const loadSalaryGroups = async () => {
     const response = await api.get('/salary-groups')
     
     if (response.success) {
-      salaryGroups.value = response.data || []
+      // 数据有效性校验，过滤掉无效项
+      salaryGroups.value = Array.isArray(response.data)
+        ? response.data.filter(item => item && item.id !== undefined && item.name !== undefined)
+        : []
     } else {
       ElMessage.error(response.error || '加载薪资组失败')
       salaryGroups.value = []
@@ -215,7 +208,10 @@ const loadEmployees = async () => {
     const response = await api.get('/employee/list')
     
     if (response.success) {
-      employees.value = response.data || []
+      // 数据有效性校验，过滤掉无效项
+      employees.value = Array.isArray(response.data)
+        ? response.data.filter(item => item && item.id !== undefined && item.name !== undefined)
+        : []
     } else {
       ElMessage.error(response.error || '加载员工失败')
       employees.value = []

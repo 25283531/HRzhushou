@@ -27,7 +27,26 @@ class BaseModel:
 
 class Employee(BaseModel):
     """员工模型"""
-    
+    @classmethod
+    def create_table(cls):
+        query = '''
+        CREATE TABLE IF NOT EXISTS employees (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            employee_id TEXT,
+            employee_number TEXT UNIQUE,
+            id_card TEXT,
+            department TEXT,
+            position TEXT,
+            entry_date DATE,
+            leave_date DATE,
+            custom_fields TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        '''
+        execute_query(query)
+
     @classmethod
     def create(cls, data):
         query = '''
@@ -202,9 +221,8 @@ class Attendance(BaseModel):
     def create(cls, data):
         query = '''
         INSERT INTO attendance 
-            (employee_id, date, status, work_hours, late_minutes, 
-             early_leave_minutes, overtime_hours, absence_days, custom_data, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (employee_id, name, employee_number, id_card, month, should_attend_days, actual_attend_days, late_count, serious_late_count, early_leave_count, serious_early_leave_count, absenteeism_count, sick_leave_days, personal_leave_days, work_injury_leave_days, annual_leave_days, overtime_hours, date, status, work_hours, late_minutes, early_leave_minutes, absence_days, custom_data, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         '''
         
         custom_data = json.dumps(data.get('custom_data', {}))
@@ -212,12 +230,27 @@ class Attendance(BaseModel):
         
         params = (
             data.get('employee_id'),
+            data.get('name'),
+            data.get('employee_number'),
+            data.get('id_card'),
+            data.get('month'),
+            data.get('should_attend_days', 0),
+            data.get('actual_attend_days', 0),
+            data.get('late_count', 0),
+            data.get('serious_late_count', 0),
+            data.get('early_leave_count', 0),
+            data.get('serious_early_leave_count', 0),
+            data.get('absenteeism_count', 0),
+            data.get('sick_leave_days', 0),
+            data.get('personal_leave_days', 0),
+            data.get('work_injury_leave_days', 0),
+            data.get('annual_leave_days', 0),
+            data.get('overtime_hours', 0),
             data.get('date'),
             data.get('status'),
             data.get('work_hours', 0),
             data.get('late_minutes', 0),
             data.get('early_leave_minutes', 0),
-            data.get('overtime_hours', 0),
             data.get('absence_days', 0),
             custom_data,
             current_time
@@ -255,12 +288,27 @@ class Attendance(BaseModel):
         query = '''
         UPDATE attendance SET 
             employee_id = ?,
+            name = ?,
+            employee_number = ?,
+            id_card = ?,
+            month = ?,
+            should_attend_days = ?,
+            actual_attend_days = ?,
+            late_count = ?,
+            serious_late_count = ?,
+            early_leave_count = ?,
+            serious_early_leave_count = ?,
+            absenteeism_count = ?,
+            sick_leave_days = ?,
+            personal_leave_days = ?,
+            work_injury_leave_days = ?,
+            annual_leave_days = ?,
+            overtime_hours = ?,
             date = ?,
             status = ?,
             work_hours = ?,
             late_minutes = ?,
             early_leave_minutes = ?,
-            overtime_hours = ?,
             absence_days = ?,
             custom_data = ?
         WHERE id = ?
@@ -269,22 +317,34 @@ class Attendance(BaseModel):
         current_record = cls.get_by_id(id)
         if not current_record:
             return None
-        
-        custom_data = json.dumps(data.get('custom_data', {}))
-        
+        custom_data = json.dumps(data.get('custom_data', current_record.get('custom_data', {})))
         params = (
             data.get('employee_id', current_record['employee_id']),
+            data.get('name', current_record['name']),
+            data.get('employee_number', current_record['employee_number']),
+            data.get('id_card', current_record['id_card']),
+            data.get('month', current_record['month']),
+            data.get('should_attend_days', current_record['should_attend_days']),
+            data.get('actual_attend_days', current_record['actual_attend_days']),
+            data.get('late_count', current_record['late_count']),
+            data.get('serious_late_count', current_record['serious_late_count']),
+            data.get('early_leave_count', current_record['early_leave_count']),
+            data.get('serious_early_leave_count', current_record['serious_early_leave_count']),
+            data.get('absenteeism_count', current_record['absenteeism_count']),
+            data.get('sick_leave_days', current_record['sick_leave_days']),
+            data.get('personal_leave_days', current_record['personal_leave_days']),
+            data.get('work_injury_leave_days', current_record['work_injury_leave_days']),
+            data.get('annual_leave_days', current_record['annual_leave_days']),
+            data.get('overtime_hours', current_record['overtime_hours']),
             data.get('date', current_record['date']),
             data.get('status', current_record['status']),
             data.get('work_hours', current_record['work_hours']),
             data.get('late_minutes', current_record['late_minutes']),
             data.get('early_leave_minutes', current_record['early_leave_minutes']),
-            data.get('overtime_hours', current_record['overtime_hours']),
             data.get('absence_days', current_record['absence_days']),
             custom_data,
             id
         )
-        
         execute_query(query, params)
         return cls.get_by_id(id)
     

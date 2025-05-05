@@ -20,6 +20,10 @@
             <el-icon><Calendar /></el-icon>
             <span>考勤管理</span>
           </el-menu-item>
+          <el-menu-item index="/attendance-rule-setting">
+            <el-icon><Setting /></el-icon>
+            <span>考勤规则设置</span>
+          </el-menu-item>
           <el-menu-item index="/employee">
             <el-icon><User /></el-icon>
             <span>员工管理</span>

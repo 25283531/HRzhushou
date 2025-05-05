@@ -1,0 +1,56 @@
+2025-05-04 11:23:35,063 - hrzhushou.app_lifecycle - INFO - 正在启动所有后台服务...
+2025-05-04 11:23:35,066 - hrzhushou.app_lifecycle - INFO - 资源监控服务已启动
+2025-05-04 11:23:35,067 - hrzhushou.app_lifecycle - INFO - 自动备份服务已启动
+2025-05-04 11:23:35,068 - hrzhushou.app_lifecycle - INFO - 数据库连接监控已启动
+2025-05-04 11:23:35,069 - hrzhushou.app_lifecycle - INFO - 已注册应用程序退出处理函数
+2025-05-04 11:23:35,070 - hrzhushou.app_lifecycle - INFO - 所有后台服务已成功启动
+2025-05-04 11:23:35,071 - hrzhushou.app_lifecycle - INFO - 应用程序启动时间: 2025-05-04 11:23:35
+2025-05-04 11:23:35,071 - hrzhushou.app_lifecycle - INFO - Python版本: 3.11.11 | packaged by Anaconda, Inc. | (main, Dec 11 2024, 16:34:19) [MSC v.1929 64 bit (AMD64)]
+2025-05-04 11:23:35,072 - hrzhushou.app_lifecycle - INFO - 运行平台: win32
+2025-05-04 11:23:35,073 - hrzhushou.app_lifecycle - INFO - 工作目录: G:\git\work\HRzhushou
+2025-05-04 11:27:27,157 - hrzhushou.app_lifecycle - INFO - 正在停止所有后台服务...
+2025-05-04 11:27:29,122 - hrzhushou.app_lifecycle - INFO - 正在停止所有后台服务...
+2025-05-04 11:27:44,160 - hrzhushou.app_lifecycle - INFO - 自动备份服务停止失败
+2025-05-04 11:27:45,152 - hrzhushou.app_lifecycle - INFO - 资源监控服务停止成功
+2025-05-04 11:27:45,152 - hrzhushou.app_lifecycle - INFO - 所有后台线程停止成功
+2025-05-04 11:27:45,153 - hrzhushou.app_lifecycle - INFO - 所有后台服务已停止
+2025-05-04 11:27:45,153 - hrzhushou.app_lifecycle - INFO - 应用程序关闭时间: 2025-05-04 11:27:45
+2025-05-04 11:27:45,154 - hrzhushou.app_lifecycle - INFO - 应用程序运行时长: 0小时4分钟10秒
+2025-05-04 11:27:45,154 - hrzhushou.app_lifecycle - INFO - 后台服务尚未启动，无需停止
+2025-05-04 11:27:45,155 - hrzhushou.app_lifecycle - INFO - 应用程序正在退出，执行清理操作...
+2025-05-04 11:27:45,157 - hrzhushou.app_lifecycle - WARNING - 检测到 2 个数据库连接可能泄漏
+2025-05-04 11:27:45,158 - hrzhushou.app_lifecycle - INFO - 数据库连接池状态: {'pool_size': 3, 'active_connections': 2, 'available_connections': 1, 'max_connections': 10}
+2025-05-04 11:27:45,158 - hrzhushou.app_lifecycle - INFO - 后台服务尚未启动，无需停止
+2025-05-04 11:27:45,159 - hrzhushou.app_lifecycle - INFO - 数据库连接关闭成功
+2025-05-04 11:27:45,159 - hrzhushou.app_lifecycle - INFO - 应用程序清理完成，准备退出
+2025-05-04 11:27:45,160 - hrzhushou.app_lifecycle - INFO - 后台服务尚未启动，无需停止
+2025-05-04 11:32:56,743 - hrzhushou.app_lifecycle - INFO - 正在启动所有后台服务...
+2025-05-04 11:32:56,745 - hrzhushou.app_lifecycle - INFO - 资源监控服务已启动
+2025-05-04 11:32:56,746 - hrzhushou.app_lifecycle - INFO - 自动备份服务已启动
+2025-05-04 11:32:56,747 - hrzhushou.app_lifecycle - INFO - 数据库连接监控已启动
+2025-05-04 11:32:56,747 - hrzhushou.app_lifecycle - INFO - 已注册应用程序退出处理函数
+2025-05-04 11:32:56,748 - hrzhushou.app_lifecycle - INFO - 所有后台服务已成功启动
+2025-05-04 11:32:56,749 - hrzhushou.app_lifecycle - INFO - 应用程序启动时间: 2025-05-04 11:32:56
+2025-05-04 11:32:56,750 - hrzhushou.app_lifecycle - INFO - Python版本: 3.11.11 | packaged by Anaconda, Inc. | (main, Dec 11 2024, 16:34:19) [MSC v.1929 64 bit (AMD64)]
+2025-05-04 11:32:56,750 - hrzhushou.app_lifecycle - INFO - 运行平台: win32
+2025-05-04 11:32:56,751 - hrzhushou.app_lifecycle - INFO - 工作目录: G:\git\work\HRzhushou
+2025-05-04 11:47:47,402 - hrzhushou.app_lifecycle - INFO - 正在启动所有后台服务...
+2025-05-04 11:47:47,404 - hrzhushou.app_lifecycle - INFO - 资源监控服务已启动
+2025-05-04 11:47:47,404 - hrzhushou.app_lifecycle - INFO - 自动备份服务已启动
+2025-05-04 11:47:47,406 - hrzhushou.app_lifecycle - INFO - 数据库连接监控已启动
+2025-05-04 11:47:47,406 - hrzhushou.app_lifecycle - INFO - 已注册应用程序退出处理函数
+2025-05-04 11:47:47,407 - hrzhushou.app_lifecycle - INFO - 所有后台服务已成功启动
+2025-05-04 11:47:47,408 - hrzhushou.app_lifecycle - INFO - 应用程序启动时间: 2025-05-04 11:47:47
+2025-05-04 11:47:47,409 - hrzhushou.app_lifecycle - INFO - Python版本: 3.11.11 | packaged by Anaconda, Inc. | (main, Dec 11 2024, 16:34:19) [MSC v.1929 64 bit (AMD64)]
+2025-05-04 11:47:47,409 - hrzhushou.app_lifecycle - INFO - 运行平台: win32
+2025-05-04 11:47:47,410 - hrzhushou.app_lifecycle - INFO - 工作目录: G:\git\work\HRzhushou
+2025-05-04 12:02:21,532 - hrzhushou.app_lifecycle - INFO - 正在启动所有后台服务...
+2025-05-04 12:02:21,534 - hrzhushou.app_lifecycle - INFO - 资源监控服务已启动
+2025-05-04 12:02:21,535 - hrzhushou.app_lifecycle - INFO - 自动备份服务已启动
+2025-05-04 12:02:21,536 - hrzhushou.app_lifecycle - INFO - 数据库连接监控已启动
+2025-05-04 12:02:21,536 - hrzhushou.app_lifecycle - INFO - 已注册应用程序退出处理函数
+2025-05-04 12:02:21,537 - hrzhushou.app_lifecycle - INFO - 所有后台服务已成功启动
+2025-05-04 12:02:21,538 - hrzhushou.app_lifecycle - INFO - 应用程序启动时间: 2025-05-04 12:02:21
+2025-05-04 12:02:21,539 - hrzhushou.app_lifecycle - INFO - Python版本: 3.11.11 | packaged by Anaconda, Inc. | (main, Dec 11 2024, 16:34:19) [MSC v.1929 64 bit (AMD64)]
+2025-05-04 12:02:21,539 - hrzhushou.app_lifecycle - INFO - 运行平台: win32
+2025-05-04 12:02:21,540 - hrzhushou.app_lifecycle - INFO - 工作目录: G:\git\work\HRzhushou
