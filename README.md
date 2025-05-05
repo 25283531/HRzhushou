@@ -117,23 +117,24 @@
 HRzhushou/
 ├── README.md                 # 项目说明文档
 ├── package.json              # 项目依赖配置
+├── package-lock.json          # 依赖锁定文件
 ├── vite.config.js            # Vite配置文件
 ├── index.html                # 主HTML文件
-├── frontend/                 # 前端代码
-│   ├── src/                  # 源代码
-│   │   ├── main.js           # 主入口文件
-│   │   ├── App.vue           # 主应用组件
-│   │   ├── assets/           # 静态资源
-│   │   ├── components/       # 公共组件
-│   │   ├── views/            # 页面视图
-│   │   ├── router/           # 路由配置
-│   │   └── store/            # 状态管理
-│   └── public/               # 公共资源
+├── .coverage                 # 测试覆盖率报告
+├── .gitignore                # Git忽略规则
+├── .venv/                    # Python虚拟环境
 ├── backend/                  # 后端代码
 │   ├── app.py                # 主应用入口
 │   ├── database/             # 数据库相关
 │   │   ├── models.py         # 数据模型
 │   │   └── db.py             # 数据库连接
+│   ├── routes/               # API路由
+│   │   ├── attendance.py     # 考勤路由
+│   │   ├── employee.py       # 员工路由
+│   │   ├── salary.py         # 薪资路由
+│   │   ├── social_security.py # 社保路由
+│   │   ├── position_levels.py # 职位级别路由
+│   │   └── salary_items.py   # 薪资项路由
 │   ├── services/             # 业务逻辑
 │   │   ├── attendance.py     # 考勤数据处理
 │   │   ├── employee.py       # 员工信息处理
@@ -141,17 +142,62 @@ HRzhushou/
 │   │   └── social_security.py # 社保处理
 │   ├── utils/                # 工具函数
 │   │   ├── app_lifecycle.py  # 应用生命周期管理
-│   │   ├── backup_service.py # 数据备份服务
+│   │   ├── backup_service.py # 备份服务
 │   │   ├── data_validator.py # 数据验证工具
 │   │   ├── date_parser.py    # 日期解析工具
-│   │   ├── error_handler.py  # 错误处理服务
-│   │   ├── resource_monitor.py # 资源监控工具
-│   │   └── thread_manager.py # 线程管理工具
-│   └── tests/                # 测试代码
-│       └── test_app_exit.py  # 应用退出测试
-└── electron/                 # Electron打包
-    ├── main.js               # 主进程
-    └── preload.js            # 预加载脚本
+│   │   ├── error_handler.py  # 错误处理
+│   │   ├── resource_monitor.py # 资源监控
+│   │   └── thread_manager.py # 线程管理
+│   ├── models/               # 数据模型
+│   │   ├── position_levels.py # 职位级别模型
+│   │   └── salary_items.py  # 薪资项模型
+│   ├── scripts/              # 脚本
+│   │   ├── init_position_levels.py # 初始化职位级别
+│   │   └── init_test_data.py # 初始化测试数据
+│   ├── tests/                # 测试代码
+│   │   ├── test_app_exit.py  # 应用退出测试
+│   │   ├── test_attendance.py # 考勤测试
+│   │   ├── test_employee.py  # 员工测试
+│   │   ├── test_salary.py    # 薪资测试
+│   │   ├── test_social_security.py # 社保测试
+│   │   └── test_tax.py      # 个税测试
+│   ├── backups/              # 数据备份
+│   └── requirements.txt      # Python依赖
+├── frontend/                 # 前端代码
+│   ├── src/                  # 源代码
+│   │   ├── main.js           # 主入口文件
+│   │   ├── App.vue           # 主应用组件
+│   │   ├── api/              # API接口
+│   │   ├── components/       # 公共组件
+│   │   ├── views/            # 页面视图
+│   │   ├── router/           # 路由配置
+│   │   ├── utils/            # 工具函数
+│   │   └── tests/           # 前端测试
+│   └── .env                  # 环境变量
+├── dist/                     # 构建输出
+│   ├── assets/               # 静态资源
+│   └── index.html            # 构建后的HTML
+├── docs/                     # 文档
+│   ├── api-path-guidelines.md # API路径指南
+│   ├── api-troubleshooting.md # API问题排查
+│   ├── edit.md               # 编辑指南
+│   ├── help.md               # 帮助文档
+│   ├── test.md               # 测试文档
+│   ├── test2.md              # 测试文档2
+│   └── test3.md              # 测试文档3
+├── electron/                 # Electron配置
+│   ├── main.js               # 主进程
+│   └── preload.js            # 预加载脚本
+├── logs/                     # 日志文件
+│   └── app.log               # 应用日志
+├── scripts/                  # 脚本
+│   └── check-api-paths.js    # API路径检查
+├── tests/                    # 测试
+│   ├── api-attendance.test.js # 考勤API测试
+│   ├── api-availability.test.js # 可用性测试
+│   ├── api-employee.test.js  # 员工API测试
+│   ├── basic-api.test.js     # 基础API测试
+└── data/                     # 数据目录
 ```
 
 ## 开发流程
