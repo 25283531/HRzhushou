@@ -268,9 +268,71 @@ class EmployeeController {
   // 批量导入员工数据
   static async importEmployees(req, res, next) {
     try {
-      const employees = req.body;
-      const result = await Employee.bulkCreate(employees);
-      res.status(201).json(result);
+      const { data } = req.body;
+      const results = [];
+
+      for (const record of data) {
+        // 数据类型转换和验证
+        const employeeData = {
+          name: record.name?.trim(),
+          employee_number: record.employee_number?.trim(),
+          id_card_number: record.id_card_number?.trim(),
+          department_level1: record.department_level1?.trim(),
+          department_level2: record.department_level2?.trim() || '',
+          position: record.position?.trim() || '',
+          entry_date: record.entry_date ? new Date(record.entry_date).toISOString().split('T')[0] : null,
+          status: record.status || '在职',
+          salary_group: record.salary_group ? Number(record.salary_group) : null,
+          social_security_group: record.social_security_group ? Number(record.social_security_group) : null,
+          bank_account: record.bank_account?.trim() || '',
+          phone: record.phone?.trim() || '',
+          remarks: record.remarks?.trim() || ''
+        };
+
+        // 验证必填字段
+        const requiredFields = {
+          name: '员工姓名',
+          employee_number: '工号',
+          id_card_number: '身份证号',
+          department_level1: '一级部门',
+          entry_date: '入职日期'
+        };
+        let errorMsg = '';
+        for (const [field, label] of Object.entries(requiredFields)) {
+          if (!employeeData[field]) {
+            errorMsg = `${label}不能为空`;
+            break;
+          }
+        }
+        if (employeeData.salary_group !== null && !Number.isInteger(employeeData.salary_group)) {
+          errorMsg = '薪资组必须是整数';
+        }
+        if (employeeData.social_security_group !== null && !Number.isInteger(employeeData.social_security_group)) {
+          errorMsg = '社保组必须是整数';
+        }
+        if (errorMsg) {
+          results.push({
+            ...employeeData,
+            status: '失败',
+            error: errorMsg
+          });
+          continue;
+        }
+        try {
+          await Employee.create(employeeData);
+          results.push({
+            ...employeeData,
+            status: '成功'
+          });
+        } catch (error) {
+          results.push({
+            ...employeeData,
+            status: '失败',
+            error: error.message
+          });
+        }
+      }
+      res.json({ results });
     } catch (error) {
       logger.error('导入员工数据失败:', error);
       next(error);
@@ -278,4 +340,4 @@ class EmployeeController {
   }
 }
 
-module.exports = EmployeeController; 
+module.exports = EmployeeController;

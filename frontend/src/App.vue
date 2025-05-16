@@ -61,18 +61,25 @@
       <el-container>
         <el-header>
           <div class="header-right">
-            <el-dropdown>
+            <el-dropdown v-if="isLoggedIn">
               <span class="el-dropdown-link">
-                管理员
+                <el-icon><UserFilled /></el-icon> {{ username }}
                 <el-icon class="el-icon--right"><ArrowDown /></el-icon>
               </span>
               <template #dropdown>
                 <el-dropdown-menu>
                   <el-dropdown-item>设置</el-dropdown-item>
-                  <el-dropdown-item>退出</el-dropdown-item>
+                  <el-dropdown-item @click="handleLogout">
+                    <el-icon><SwitchButton /></el-icon>退出登录
+                  </el-dropdown-item>
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
+            <div v-else>
+              <el-button type="primary" link @click="router.push('/login')">登录</el-button>
+              <el-divider direction="vertical"></el-divider>
+              <el-button type="primary" link @click="router.push('/register')">注册</el-button>
+            </div>
           </div>
         </el-header>
         <el-main>
@@ -89,7 +96,62 @@
 </template>
 
 <script setup>
-import { HomeFilled, Calendar, User, Money, Service, Document, DataAnalysis, ArrowDown, List, Setting, Rank } from '@element-plus/icons-vue'
+import { ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { HomeFilled, Calendar, User, Money, Service, Document, DataAnalysis, ArrowDown, List, Setting, Rank, SwitchButton, UserFilled } from '@element-plus/icons-vue';
+import { isAuthenticated, logout as performLogout } from '@/api/authService';
+
+const router = useRouter();
+const isLoggedIn = ref(isAuthenticated());
+// In a real app, you might fetch user details and store them
+const username = ref(''); // Placeholder for username
+
+const checkAuthStatus = () => {
+  isLoggedIn.value = isAuthenticated();
+  if (isLoggedIn.value) {
+    // Potentially decode token to get username or fetch from an endpoint
+    // For now, let's assume a generic user or retrieve from localStorage if stored
+    const token = localStorage.getItem('token');
+    if (token) {
+        try {
+            // Basic JWT decode (not secure for sensitive data, just for display)
+            const base64Url = token.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+            const decodedToken = JSON.parse(jsonPayload);
+            // Assuming the token has a 'sub' (subject) claim for user ID or username
+            // Or if you store username directly after login
+            username.value = decodedToken.sub || '用户'; 
+        } catch (e) {
+            username.value = '用户'; // Fallback
+            console.error('Error decoding token:', e);
+        }
+    } else {
+        username.value = '用户';
+    }
+  } else {
+    username.value = '';
+  }
+};
+
+onMounted(() => {
+  checkAuthStatus();
+  // Listen for storage changes to update login status (e.g., if logged out in another tab)
+  window.addEventListener('storage', checkAuthStatus);
+  // Also, re-check on route changes, especially after login/logout actions
+  router.afterEach(() => {
+    checkAuthStatus();
+  });
+});
+
+const handleLogout = () => {
+  performLogout();
+  isLoggedIn.value = false;
+  username.value = '';
+  router.push('/login');
+};
 </script>
 
 <style scoped>

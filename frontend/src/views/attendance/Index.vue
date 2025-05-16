@@ -38,8 +38,40 @@
         border
         style="width: 100%"
         max-height="500">
-        <el-table-column prop="employee_name" label="员工姓名" width="120" />
+        <el-table-column prop="employee_name" label="姓名" width="120" />
         <el-table-column prop="employee_number" label="工号" width="120" />
+        <el-table-column prop="exception_detail" label="考勤异常详情" min-width="200">
+          <template #default="scope">
+            <span>{{ scope.row.exception_detail || '无异常' }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="150" fixed="right">
+          <template #default="scope">
+            <el-button size="small" @click="editExceptionDetail(scope.row)">编辑异常</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <!-- 编辑异常详情弹窗 -->
+      <el-dialog v-model="exceptionDialogVisible" title="编辑考勤异常详情" width="400px">
+        <el-form :model="exceptionForm" label-width="100px">
+          <el-form-item label="异常详情">
+            <el-input v-model="exceptionForm.exception_detail" type="textarea" rows="4" placeholder="请输入异常详情" />
+          </el-form-item>
+        </el-form>
+        <template #footer>
+          <span class="dialog-footer">
+            <el-button @click="exceptionDialogVisible = false">取消</el-button>
+            <el-button type="primary" @click="saveExceptionDetail">保存</el-button>
+          </span>
+        </template>
+      </el-dialog>
+      <el-table
+        v-loading="loading"
+        :data="attendanceData"
+        border
+        style="width: 100%"
+        max-height="500">
         <el-table-column prop="date" label="日期" width="120" />
         <el-table-column prop="check_in" label="上班打卡" width="150" />
         <el-table-column prop="check_out" label="下班打卡" width="150" />
@@ -110,17 +142,18 @@
           </el-table>
         </el-form-item>
         <el-form-item v-if="mappingStep && importForm.file && selectedSheet && Array.isArray(fieldMappings) && fieldMappings.length > 0" label="字段映射">
-          <el-table :data="fieldMappings" border style="width: 100%">
+          <el-table :data="fieldMappings.filter(item => !!item && typeof item === 'object')" border style="width: 100%">
             <el-table-column prop="dbField" label="计算字段" width="180">
               <template #default="{ row }">
                 {{ dbFields.find(f => f.dbField === row.dbField)?.label || row.dbField }}
               </template>
             </el-table-column>
             <el-table-column label="Excel列名">
-              <template #default="{ row: scope }">
-                <el-select v-model="scope.row.excelField" placeholder="请选择Excel列名" style="width: 200px">
+              <template #default="{ row }">
+                <el-select v-if="row" v-model="row.excelField" placeholder="请选择Excel列名" style="width: 200px">
                   <el-option v-for="col in previewColumns" :key="col" :label="col" :value="col" />
                 </el-select>
+                <span v-else style="color: #f56c6c;">无数据</span>
               </template>
             </el-table-column>
           </el-table>
@@ -397,13 +430,14 @@ const confirmMapping = () => {
     fieldMappings.value = [];
     return;
   }
-  // 生成映射数组，确保每项都包含 excelField 字段
-  fieldMappings.value = dbFields.value.map(f => {
-    return {
+  // 生成映射数组，确保每项都包含 excelField 字段且结构正确
+  fieldMappings.value = dbFields.value
+    .filter(f => !!f && typeof f === 'object' && f.dbField)
+    .map(f => ({
       dbField: f.dbField,
       excelField: previewColumns.value.includes(f.label) ? f.label : (previewColumns.value[0] || '')
-    };
-  });
+    }))
+    .filter(item => !!item.dbField && typeof item.excelField === 'string');
   mappingStep.value = true;
 };
 const handleFileChange = (file) => {

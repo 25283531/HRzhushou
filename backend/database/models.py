@@ -127,6 +127,51 @@ class Employee(BaseModel):
         query = 'DELETE FROM employees WHERE id = ?'
         return execute_query(query, (id,))
 
+class User(BaseModel):
+    """用户模型"""
+    @classmethod
+    def create_table(cls):
+        query = '''
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL UNIQUE,
+            password TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        '''
+        execute_query(query)
+
+    @classmethod
+    def create(cls, data):
+        query = '''
+        INSERT INTO users (username, password, created_at, updated_at)
+        VALUES (?, ?, ?, ?)
+        '''
+        # In a real application, hash the password before storing
+        # from werkzeug.security import generate_password_hash
+        # hashed_password = generate_password_hash(data.get('password'))
+        current_time = get_current_time()
+        params = (
+            data.get('username'),
+            data.get('password'), # Store hashed password in production
+            current_time,
+            current_time
+        )
+        return execute_query(query, params)
+
+    @classmethod
+    def get_by_username(cls, username):
+        query = 'SELECT * FROM users WHERE username = ?'
+        return execute_query(query, (username,), one=True)
+
+    @classmethod
+    def get_by_id(cls, id):
+        query = 'SELECT * FROM users WHERE id = ?'
+        return execute_query(query, (id,), one=True)
+
+    # update and delete methods can be added as needed
+
 class PositionChange(BaseModel):
     """职位变动记录模型"""
     

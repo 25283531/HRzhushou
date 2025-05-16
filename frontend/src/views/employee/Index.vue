@@ -197,36 +197,64 @@
     <el-dialog
       v-model="importDialogVisible"
       title="批量导入员工"
-      width="600px">
-      <el-upload
-        class="upload-demo"
-        drag
-        action="/employee/import"
-        :auto-upload="false"
-        :on-change="handleFileChange"
-        :limit="1"
-        accept=".xlsx,.xls,.csv">
-        <el-icon class="el-icon--upload"><upload-filled /></el-icon>
-        <div class="el-upload__text">
-          将文件拖到此处，或<em>点击上传</em>
-        </div>
-        <template #tip>
-          <div class="el-upload__tip">
-            支持 Excel 或 CSV 格式文件，请确保文件格式正确
-          </div>
-        </template>
-      </el-upload>
-      <div class="import-actions">
-        <el-button type="primary" @click="downloadTemplate">下载导入模板</el-button>
-      </div>
+      width="700px">
+      <el-form :model="importForm" label-width="120px">
+        <el-form-item label="员工数据文件">
+          <el-upload
+            class="upload-demo"
+            drag
+            :auto-upload="false"
+            :on-change="handleFileChange"
+            :limit="1"
+            accept=".xlsx,.xls,.csv">
+            <el-icon class="el-icon--upload"><upload-filled /></el-icon>
+            <div class="el-upload__text">
+              将文件拖到此处，或<em>点击上传</em>
+            </div>
+            <template #tip>
+              <div class="el-upload__tip">
+                支持 Excel 或 CSV 格式文件，请确保文件格式正确
+              </div>
+            </template>
+          </el-upload>
+          <el-button type="primary" style="margin-left: 20px" @click="downloadTemplate">下载导入模板</el-button>
+        </el-form-item>
+        <el-form-item v-if="sheetNames.length > 1" label="选择工作表">
+          <el-select v-model="selectedSheet" placeholder="请选择要导入的工作表" style="width: 250px">
+            <el-option v-for="name in sheetNames" :key="name" :label="name" :value="name" />
+          </el-select>
+        </el-form-item>
+        <el-form-item v-if="sheetPreview.length" label="表格预览">
+          <el-table :data="sheetPreview" border height="200" style="width: 100%">
+            <el-table-column v-for="col in previewColumns" :key="col" :prop="col" :label="col" />
+          </el-table>
+        </el-form-item>
+        <el-form-item v-if="mappingStep && importForm.file && selectedSheet && Array.isArray(fieldMappings) && fieldMappings.length > 0" label="字段映射">
+          <el-table :data="fieldMappings.filter(item => !!item && typeof item === 'object')" border style="width: 100%">
+            <el-table-column prop="dbField" label="数据库字段" width="180">
+              <template #default="{ row }">
+                {{ dbFields.find(f => f.dbField === row.dbField)?.label || row.dbField }}
+              </template>
+            </el-table-column>
+            <el-table-column label="Excel列名">
+              <template #default="{ row }">
+                <el-select v-if="row" v-model="row.excelField" placeholder="请选择Excel列名" style="width: 200px">
+                  <el-option v-for="col in previewColumns" :key="col" :label="col" :value="col" />
+                </el-select>
+                <span v-else style="color: #f56c6c;">无数据</span>
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-form-item>
+      </el-form>
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="importDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="submitImport">导入</el-button>
+          <el-button v-if="!mappingStep && sheetPreview.length" type="primary" @click="confirmMapping">下一步</el-button>
+          <el-button v-if="mappingStep" type="primary" @click="submitImport">导入</el-button>
         </span>
       </template>
     </el-dialog>
-    
     <!-- 员工详情对话框 -->
     <el-dialog
       v-model="detailDialogVisible"
@@ -252,10 +280,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Upload, UploadFilled, Search, Refresh } from '@element-plus/icons-vue'
 import { validateEmployeeRecords, validateExcelFile } from '../../utils/dataValidator'
+import * as XLSX from 'xlsx'
 
 // 数据加载状态
 const loading = ref(false)
@@ -364,221 +393,207 @@ const employeeRules = {
 
 // 导入对话框
 const importDialogVisible = ref(false)
-const importFile = ref(null)
+const importForm = reactive({ file: null, workbook: null })
+const selectedSheet = ref('')
+const sheetNames = ref([])
+const sheetPreview = ref([])
+const previewColumns = ref([])
+const mappingStep = ref(false)
+const fieldMappings = ref([])
+const dbFields = ref([
+  { dbField: 'name', label: '员工姓名' },
+  { dbField: 'employee_number', label: '工号' },
+  { dbField: 'id_card_number', label: '身份证号' },
+  { dbField: 'department_level1', label: '一级部门' },
+  { dbField: 'department_level2', label: '二级部门' },
+  { dbField: 'position', label: '职务' },
+  { dbField: 'entry_date', label: '入职日期' },
+  { dbField: 'status', label: '状态' },
+  { dbField: 'salary_group', label: '薪资组' },
+  { dbField: 'social_security_group', label: '社保组' },
+  { dbField: 'bank_account', label: '银行卡号' },
+  { dbField: 'phone', label: '手机号码' },
+  { dbField: 'remarks', label: '备注' }
+])
 
-// 详情对话框
-const detailDialogVisible = ref(false)
-const detailEmployee = ref({})
-
-// 生命周期钩子
-onMounted(() => {
-  fetchEmployeeData()
-})
-
-// 获取员工数据
-const fetchEmployeeData = () => {
-  loading.value = true
-  
-  // 导入API模块
-  import('../../api').then(({ default: api }) => {
-    // 构建查询参数
-    const params = {
-      name: searchForm.name,
-      employee_number: searchForm.employeeNumber,
-      department: searchForm.department,
-      page: currentPage.value,
-      page_size: pageSize.value,
-      _t: new Date().getTime() // 添加时间戳避免缓存
-    }
-    
-    // 调用API获取员工数据
-    api.get('/employee/list', { params })
-      .then(response => {
-        if (response.success) {
-          employeeData.value = response.data.items || []
-          total.value = response.data.total || 0
-        } else {
-          ElMessage.error(response.error || '获取员工数据失败')
-          employeeData.value = []
-          total.value = 0
-        }
-        loading.value = false
-      })
-      .catch(error => {
-        console.error('获取员工数据失败:', error)
-        ElMessage.error('获取员工数据失败')
-        employeeData.value = []
-        total.value = 0
-        loading.value = false
-      })
-  })
-}
-
-// 搜索
-const handleSearch = () => {
+function handleSizeChange(val) {
+  pageSize.value = val
   currentPage.value = 1
   fetchEmployeeData()
 }
-
-// 重置搜索
-const resetSearch = () => {
-  Object.keys(searchForm).forEach(key => {
-    searchForm[key] = ''
-  })
-  handleSearch()
+function handleCurrentChange(val) {
+  currentPage.value = val
+  fetchEmployeeData()
 }
-
-// 显示添加对话框
-const showAddDialog = () => {
-  isEdit.value = false
-  Object.keys(employeeForm).forEach(key => {
-    employeeForm[key] = key === 'status' ? '在职' : ''
-  })
-  employeeDialogVisible.value = true
-}
-
-// 显示编辑对话框
-const handleEdit = (row) => {
-  isEdit.value = true
-  Object.keys(employeeForm).forEach(key => {
-    employeeForm[key] = row[key] || ''
-  })
-  employeeDialogVisible.value = true
-}
-
-// 提交员工表单
-const submitEmployeeForm = () => {
-  employeeFormRef.value.validate((valid) => {
-    if (valid) {
-      loading.value = true
-      
-      // 格式化表单数据
-      const formattedData = {
-        ...employeeForm,
-        entry_date: employeeForm.entry_date ? new Date(employeeForm.entry_date).toISOString().split('T')[0] : null,
-        salary_group: employeeForm.salary_group ? Number(employeeForm.salary_group) : null,
-        social_security_group: employeeForm.social_security_group ? Number(employeeForm.social_security_group) : null,
-        department_level2: employeeForm.department_level2 || '',
-        position: employeeForm.position || '',
-        bank_account: employeeForm.bank_account || '',
-        phone: employeeForm.phone || '',
-        remarks: employeeForm.remarks || ''
+function handleFileChange(fileObj) {
+  const file = fileObj.raw || fileObj
+  importForm.file = file
+  const result = validateExcelFile(file)
+  if (!result.valid) {
+    ElMessage.error(result.errors.join('，'))
+    return
+  }
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    try {
+      const data = new Uint8Array(e.target.result)
+      const workbook = XLSX.read(data, { type: 'array' })
+      sheetNames.value = workbook.SheetNames
+      importForm.workbook = workbook
+      if (sheetNames.value.length === 1) {
+        selectedSheet.value = sheetNames.value[0]
+        showSheetPreview(workbook, selectedSheet.value)
+      } else {
+        selectedSheet.value = ''
+        sheetPreview.value = []
       }
-      
-      // 导入API模块
-      import('../../api').then(({ default: api }) => {
-        // 根据是编辑还是新增选择不同的API
-        const apiCall = isEdit.value 
-          ? api.put(`/employee/${formattedData.id}`, formattedData)
-          : api.post('/employee', formattedData)
-        
-        apiCall.then(response => {
-          if (response.success) {
-            ElMessage.success(isEdit.value ? '员工信息更新成功' : '员工添加成功')
-            employeeDialogVisible.value = false
-            fetchEmployeeData() // 刷新数据
-          } else {
-            ElMessage.error(response.error?.message || '操作失败')
-          }
-          loading.value = false
-        }).catch(error => {
-          console.error('保存员工信息失败:', error)
-          ElMessage.error(error.error?.message || '保存员工信息失败')
-          loading.value = false
-        })
-      })
-    } else {
-      return false
+      mappingStep.value = false
+      fieldMappings.value = []
+    } catch (err) {
+      ElMessage.error('解析Excel文件失败: ' + err.message)
     }
+  }
+  reader.readAsArrayBuffer(file)
+}
+
+watch(selectedSheet, (val) => {
+  if (val && importForm.workbook) {
+    showSheetPreview(importForm.workbook, val)
+  }
+})
+
+function showSheetPreview(workbook, sheetName) {
+  const ws = workbook.Sheets[sheetName]
+  const json = XLSX.utils.sheet_to_json(ws, { header: 1 })
+  if (!json.length) {
+    sheetPreview.value = []
+    previewColumns.value = []
+    return
+  }
+  previewColumns.value = json[0]
+  sheetPreview.value = json.slice(1, 6).map(row => {
+    const obj = {}
+    previewColumns.value.forEach((col, idx) => {
+      obj[col] = row[idx]
+    })
+    return obj
   })
 }
 
-// 处理删除
-const handleDelete = (row) => {
-  ElMessageBox.confirm(
-    '确定要删除该员工信息吗？',
-    '警告',
-    {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning',
-    }
-  )
-    .then(() => {
-      // 导入API模块并调用删除接口
-      import('../../api').then(({ default: api }) => {
-        api.delete(`/employee/${row.id}`)
-          .then(response => {
-            if (response.success) {
-              ElMessage({
-                type: 'success',
-                message: '删除成功',
-              })
-              fetchEmployeeData() // 刷新数据
-            } else {
-              ElMessage.error(response.error || '删除失败')
-            }
-          })
-          .catch(error => {
-            console.error('删除员工失败:', error)
-            ElMessage.error('删除员工失败')
-          })
-      })
-    })
-    .catch(() => {
-      // 取消删除
-    })
+function confirmMapping() {
+  if (!sheetPreview.value.length) {
+    ElMessage.error('请先上传并选择包含表头的Excel文件')
+    fieldMappings.value = []
+    return
+  }
+  // 生成映射数组
+  fieldMappings.value = dbFields.value.map(f => ({
+    dbField: f.dbField,
+    excelField: previewColumns.value.includes(f.label) ? f.label : (previewColumns.value[0] || '')
+  }))
+  mappingStep.value = true
 }
 
-// 查看详情
-const viewDetail = (row) => {
-  detailEmployee.value = { ...row }
-  detailDialogVisible.value = true
+function submitImport() {
+  if (!fieldMappings.value.length) {
+    ElMessage.error('请先完成字段映射')
+    return
+  }
+  const ws = importForm.workbook.Sheets[selectedSheet.value]
+  const json = XLSX.utils.sheet_to_json(ws, { header: 1 })
+  if (!json.length) {
+    ElMessage.error('Excel数据为空')
+    return
+  }
+  const header = json[0]
+  const dataRows = json.slice(1)
+  const mappedData = dataRows.map(row => {
+    const obj = {}
+    fieldMappings.value.forEach(map => {
+      const colIdx = header.indexOf(map.excelField)
+      obj[map.dbField] = colIdx > -1 ? row[colIdx] : ''
+    })
+    return obj
+  })
+  // 校验数据
+  const valid = validateEmployeeRecords(mappedData)
+  if (!valid) {
+    ElMessage.error('数据校验失败，请检查导入内容')
+    return
+  }
+  // 提交到后端
+  import('../../api').then(({ default: api }) => {
+    api.post('/employee/import', { data: mappedData }).then(response => {
+      if (response.results) {
+        ElMessage.success('导入完成')
+        importDialogVisible.value = false
+        fetchEmployeeData()
+      } else {
+        ElMessage.error('导入失败')
+      }
+    }).catch(err => {
+      ElMessage.error('导入失败: ' + (err.error?.message || err.message))
+    })
+  })
 }
-
-// 显示导入对话框
+const detailDialogVisible = ref(false)
+const showAddDialog = () => {
+  employeeDialogVisible.value = true
+  isEdit.value = false
+}
 const showImportDialog = () => {
   importDialogVisible.value = true
 }
 
-// 处理文件变更
-const handleFileChange = (file) => {
-  importFile.value = file.raw
-}
-
-// 下载导入模板
-const downloadTemplate = () => {
-  // 这里应该是实际的模板下载逻辑
-  ElMessage({
-    message: '模板下载功能正在开发中',
-    type: 'info'
+function fetchEmployeeData() {
+  loading.value = true
+  // 这里假设有api模块，实际按你的接口调整
+  import('../../api').then(({ default: api }) => {
+    api.get('/employee/list', {
+      params: {
+        name: searchForm.name,
+        employeeNumber: searchForm.employeeNumber,
+        department: searchForm.department,
+        page: currentPage.value,
+        pageSize: pageSize.value
+      }
+    }).then(res => {
+      // 兼容 data 为数组或对象
+      if (res && Array.isArray(res.data)) {
+        employeeData.value = res.data
+        total.value = res.data.length
+      } else if (res && res.data && Array.isArray(res.data.list)) {
+        employeeData.value = res.data.list
+        total.value = res.data.total || res.data.list.length || 0
+      } else {
+        employeeData.value = []
+        total.value = 0
+      }
+    }).catch(() => {
+      employeeData.value = []
+      total.value = 0
+    }).finally(() => {
+      loading.value = false
+    })
   })
 }
 
-// 提交导入
-const submitImport = () => {
-  if (!importFile.value) {
-    ElMessage.error('请选择要导入的文件')
-    return
-  }
-  
-  // 这里应该是实际的文件上传和导入逻辑
-  ElMessage.success('员工数据导入成功')
-  importDialogVisible.value = false
-  fetchEmployeeData() // 刷新数据
-}
-
-// 处理页码变化
-const handleCurrentChange = (val) => {
-  currentPage.value = val
+function handleSearch() {
+  currentPage.value = 1
   fetchEmployeeData()
 }
 
-// 处理每页条数变化
-const handleSizeChange = (val) => {
-  pageSize.value = val
+function resetSearch() {
+  searchForm.name = ''
+  searchForm.employeeNumber = ''
+  searchForm.department = ''
+  currentPage.value = 1
   fetchEmployeeData()
 }
+
+onMounted(() => {
+  fetchEmployeeData()
+})
 </script>
 
 <style scoped>

@@ -39,6 +39,11 @@ code, pre, .monospace {
 }
 
 /* 修复 Element Plus 图标字体 */
-.el-icon {
-  font-family: element-icons !important;
-} 
+body, html {
+  font-family: Arial, "Microsoft YaHei", "微软雅黑", "Helvetica Neue", Helvetica, sans-serif !important;
+}
+
+/* 覆盖 element-plus 字体图标 */
+[class^="el-icon"], [class*=" el-icon"] {
+  font-family: inherit !important;
+}

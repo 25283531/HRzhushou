@@ -26,7 +26,52 @@ def init_test_data():
         cursor.execute('DELETE FROM rule_salary_items')
         cursor.execute('DELETE FROM salary_items')
         cursor.execute('DELETE FROM matching_rules')
+        cursor.execute('DELETE FROM employees')
         
+        # 插入员工测试数据
+        employees = [
+            {
+                'name': '张三', 'employee_number': 'E1001', 'id_card_number': '110101199001010011', 'department_level1': '技术部', 'department_level2': '开发组', 'position': '开发工程师', 'entry_date': '2022-01-10', 'salary_group': 1, 'social_security_group': 1, 'bank_account': '6222021001000111111', 'phone': '13800000001', 'remarks': '优秀员工', 'status': '实习'
+            },
+            {
+                'name': '李四', 'employee_number': 'E1002', 'id_card_number': '110101199202020022', 'department_level1': '技术部', 'department_level2': '测试组', 'position': '测试工程师', 'entry_date': '2021-03-15', 'salary_group': 2, 'social_security_group': 2, 'bank_account': '6222021001000222222', 'phone': '13800000002', 'remarks': '测试能力强', 'status': '正式'
+            },
+            {
+                'name': '王五', 'employee_number': 'E1003', 'id_card_number': '110101199303030033', 'department_level1': '人事部', 'department_level2': '招聘组', 'position': '招聘专员', 'entry_date': '2020-07-01', 'salary_group': 1, 'social_security_group': 1, 'bank_account': '6222021001000333333', 'phone': '13800000003', 'remarks': '负责招聘', 'status': '派遣'
+            },
+            {
+                'name': '赵六', 'employee_number': 'E1004', 'id_card_number': '110101199404040044', 'department_level1': '财务部', 'department_level2': '财务组', 'position': '会计', 'entry_date': '2019-11-20', 'salary_group': 2, 'social_security_group': 2, 'bank_account': '6222021001000444444', 'phone': '13800000004', 'remarks': '财务管理', 'status': '正式'
+            },
+            {
+                'name': '孙七', 'employee_number': 'E1005', 'id_card_number': '110101199505050055', 'department_level1': '市场部', 'department_level2': '市场组', 'position': '市场专员', 'entry_date': '2023-02-18', 'salary_group': 3, 'social_security_group': 1, 'bank_account': '6222021001000555555', 'phone': '13800000005', 'remarks': '市场推广', 'status': '临时'
+            },
+            {
+                'name': '周八', 'employee_number': 'E1006', 'id_card_number': '110101199606060066', 'department_level1': '销售部', 'department_level2': '销售组', 'position': '销售经理', 'entry_date': '2018-05-30', 'salary_group': 3, 'social_security_group': 2, 'bank_account': '6222021001000666666', 'phone': '13800000006', 'remarks': '销售业绩突出', 'status': '正式'
+            },
+            {
+                'name': '吴九', 'employee_number': 'E1007', 'id_card_number': '110101199707070077', 'department_level1': '技术部', 'department_level2': '运维组', 'position': '运维工程师', 'entry_date': '2022-09-12', 'salary_group': 1, 'social_security_group': 1, 'bank_account': '6222021001000777777', 'phone': '13800000007', 'remarks': '负责系统运维', 'status': '派遣'
+            },
+            {
+                'name': '郑十', 'employee_number': 'E1008', 'id_card_number': '110101199808080088', 'department_level1': '人事部', 'department_level2': '培训组', 'position': '培训专员', 'entry_date': '2021-12-01', 'salary_group': 2, 'social_security_group': 2, 'bank_account': '6222021001000888888', 'phone': '13800000008', 'remarks': '负责员工培训', 'status': '实习'
+            },
+            {
+                'name': '钱十一', 'employee_number': 'E1009', 'id_card_number': '110101199909090099', 'department_level1': '市场部', 'department_level2': '市场组', 'position': '市场经理', 'entry_date': '2017-08-25', 'salary_group': 3, 'social_security_group': 1, 'bank_account': '6222021001000999999', 'phone': '13800000009', 'remarks': '市场管理', 'status': '正式'
+            },
+            {
+                'name': '冯十二', 'employee_number': 'E1010', 'id_card_number': '110101200001010010', 'department_level1': '销售部', 'department_level2': '销售组', 'position': '销售助理', 'entry_date': '2023-04-10', 'salary_group': 1, 'social_security_group': 2, 'bank_account': '6222021001001010101', 'phone': '13800000010', 'remarks': '协助销售', 'status': '临时'
+            },
+            {
+                'name': '陈十三', 'employee_number': 'E1011', 'id_card_number': '110101200102020011', 'department_level1': '技术部', 'department_level2': '开发组', 'position': '高级开发', 'entry_date': '2016-10-15', 'salary_group': 3, 'social_security_group': 2, 'bank_account': '6222021001001111111', 'phone': '13800000011', 'remarks': '技术骨干', 'status': '正式'
+            }
+        ]
+        for emp in employees:
+            cursor.execute('''
+                INSERT INTO employees (name, employee_number, id_card_number, department_level1, department_level2, position, entry_date, salary_group, social_security_group, bank_account, phone, remarks, status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                emp['name'], emp['employee_number'], emp['id_card_number'], emp['department_level1'], emp['department_level2'], emp['position'], emp['entry_date'], emp['salary_group'], emp['social_security_group'], emp['bank_account'], emp['phone'], emp['remarks'], emp['status']
+            ))
+
         # 插入薪酬项测试数据
         salary_items = [
             {
@@ -170,4 +215,4 @@ def init_test_data():
         conn.close()
 
 if __name__ == '__main__':
-    init_test_data() 
+    init_test_data()

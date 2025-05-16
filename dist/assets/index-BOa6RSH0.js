@@ -1,1 +1,0 @@
-import{a as o}from"./index-xsH4HHeE.js";const r=o.create({baseURL:"/api",timeout:1e4,headers:{"Content-Type":"application/json"}});r.interceptors.request.use(e=>{const t=localStorage.getItem("token");return t&&(e.headers.Authorization=`Bearer ${t}`),e},e=>Promise.reject(e));r.interceptors.response.use(e=>e.data,e=>Promise.reject(e));export{r as default};

@@ -1,12 +1,19 @@
 import os
 import sys
+
+# 确保项目根目录在Python路径中
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
 import traceback
 import atexit
 import signal
 import threading
 from flask import Flask
+from flask_jwt_extended import JWTManager
 from flask_cors import CORS
-from backend.database.models import Employee
+from backend.database.models import Employee, User
 
 # 全局错误标志，用于标记是否发生了致命错误
 fatal_error_occurred = False
@@ -27,16 +34,15 @@ def handle_fatal_error(error_message, exception=None):
 try:
     app = Flask(__name__)
     CORS(app)
+
+    # 配置JWT
+    app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'your-super-secret-key') # 在生产环境中应使用环境变量
+    jwt = JWTManager(app)
 except Exception as e:
     handle_fatal_error("无法创建Flask应用", e)
 
 # 导入数据库模块
 try:
-    # 确保项目根目录在Python路径中
-    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    if project_root not in sys.path:
-        sys.path.insert(0, project_root)
-    
     # 尝试绝对导入
     from backend.database.db import init_db
     from backend.models.salary_items import create_tables
@@ -50,6 +56,7 @@ def setup():
         init_db()
         create_tables()
         Employee.create_table()
+        User.create_table()  # 创建用户表
     except Exception as e:
         handle_fatal_error("数据库初始化失败", e)
 
@@ -61,6 +68,7 @@ try:
     from backend.routes.social_security import social_security_bp
     from backend.routes.salary_items import bp as salary_items_bp
     from backend.routes.position_levels import bp as position_levels_bp
+    from backend.routes.auth import auth_bp, init_auth_routes
     
     app.register_blueprint(attendance_bp, url_prefix='/api/attendance')
     app.register_blueprint(employee_bp, url_prefix='/api/employee')
@@ -68,6 +76,7 @@ try:
     app.register_blueprint(social_security_bp, url_prefix='/api/social-security')
     app.register_blueprint(salary_items_bp, url_prefix='/api/salary-items')
     app.register_blueprint(position_levels_bp, url_prefix='/api/position-levels')
+    init_auth_routes(app) # 初始化认证路由
 except ImportError as e:
     handle_fatal_error("无法导入路由模块", e)
 
@@ -116,8 +125,11 @@ except ImportError as e:
 # 启动所有应用服务
 try:
     # 应用启动时启动所有服务
-    start_app_services()
-    print("所有应用服务已启动")
+    if 'start_app_services' in globals():
+        start_app_services()
+        print("所有应用服务已启动")
+    else:
+        print("未定义 start_app_services，跳过服务启动。")
 except Exception as e:
     print(f"启动应用服务失败: {str(e)}")
     traceback.print_exc()
