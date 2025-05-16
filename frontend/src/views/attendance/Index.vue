@@ -252,6 +252,9 @@ const previewColumns = ref([])
 const mappingStep = ref(false)
 const fieldMappings = ref([])
 
+// 定义 exceptionDialogVisible 属性
+const exceptionDialogVisible = ref(false)
+
 // 下载模板方法
 const downloadTemplate = () => {
   // 构造包含所有字段的Excel模板数据

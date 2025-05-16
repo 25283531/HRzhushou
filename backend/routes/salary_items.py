@@ -26,8 +26,8 @@ create_tables()
 logger.info("数据库表已创建")
 
 # 薪酬项路由
-@bp.route('/items', methods=['GET'])
-def list_salary_items():
+@bp.route('/salary-groups/<int:group_id>/items', methods=['GET'])
+def list_salary_items(group_id):
     logger.info("收到GET /items请求")
     try:
         items = get_all_salary_items()
@@ -51,8 +51,8 @@ def list_salary_items():
             'message': f'获取薪酬项列表失败：{str(e)}'
         }), 500
 
-@bp.route('/items', methods=['POST'])
-def add_salary_item():
+@bp.route('/salary-groups/<int:group_id>/items', methods=['POST'])
+def add_salary_item(group_id):
     logger.info("收到POST /items请求")
     try:
         data = request.get_json()
@@ -71,8 +71,8 @@ def add_salary_item():
             'message': f'创建薪酬项失败：{str(e)}'
         }), 500
 
-@bp.route('/items/<int:item_id>', methods=['PUT'])
-def modify_salary_item(item_id):
+@bp.route('/salary-groups/<int:group_id>/items/<int:item_id>', methods=['PUT'])
+def modify_salary_item(group_id, item_id):
     logger.info(f"收到PUT /items/{item_id}请求")
     try:
         data = request.get_json()
@@ -96,8 +96,8 @@ def modify_salary_item(item_id):
             'message': f'更新薪酬项失败：{str(e)}'
         }), 500
 
-@bp.route('/items/<int:item_id>', methods=['DELETE'])
-def remove_salary_item(item_id):
+@bp.route('/salary-groups/<int:group_id>/items/<int:item_id>', methods=['DELETE'])
+def remove_salary_item(group_id, item_id):
     logger.info(f"收到DELETE /items/{item_id}请求")
     try:
         success = delete_salary_item(item_id)
@@ -120,8 +120,8 @@ def remove_salary_item(item_id):
         }), 500
 
 # 匹配规则路由
-@bp.route('/rules', methods=['GET'])
-def list_matching_rules():
+@bp.route('/salary-groups/<int:group_id>/matches', methods=['GET'])
+def list_matching_rules(group_id):
     logger.info("收到GET /rules请求")
     try:
         rules = get_all_matching_rules()
@@ -149,8 +149,8 @@ def list_matching_rules():
             'message': f'获取匹配规则列表失败：{str(e)}'
         }), 500
 
-@bp.route('/rules', methods=['POST'])
-def add_matching_rule():
+@bp.route('/salary-groups/<int:group_id>/matches', methods=['POST'])
+def add_matching_rule(group_id):
     logger.info("收到POST /rules请求")
     try:
         data = request.get_json()
@@ -169,8 +169,8 @@ def add_matching_rule():
             'message': f'创建匹配规则失败：{str(e)}'
         }), 500
 
-@bp.route('/rules/<int:rule_id>', methods=['PUT'])
-def modify_matching_rule(rule_id):
+@bp.route('/salary-groups/<int:group_id>/matches/<int:rule_id>', methods=['PUT'])
+def modify_matching_rule(group_id, rule_id):
     logger.info(f"收到PUT /rules/{rule_id}请求")
     try:
         data = request.get_json()
@@ -194,8 +194,8 @@ def modify_matching_rule(rule_id):
             'message': f'更新匹配规则失败：{str(e)}'
         }), 500
 
-@bp.route('/rules/<int:rule_id>', methods=['DELETE'])
-def remove_matching_rule(rule_id):
+@bp.route('/salary-groups/<int:group_id>/matches/<int:rule_id>', methods=['DELETE'])
+def remove_matching_rule(group_id, rule_id):
     logger.info(f"收到DELETE /rules/{rule_id}请求")
     try:
         success = delete_matching_rule(rule_id)
@@ -215,4 +215,4 @@ def remove_matching_rule(rule_id):
         return jsonify({
             'code': 1,
             'message': f'删除匹配规则失败：{str(e)}'
-        }), 500 
+        }), 500
